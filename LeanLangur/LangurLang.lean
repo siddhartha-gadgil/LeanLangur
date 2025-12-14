@@ -4,282 +4,169 @@ import Std
 open Lean Meta Elab Term
 
 /-!
-# IMP: A tiny imperative language
+# LangurLang: A tiny imperative language
 
-* Int ::= the domain of (unbounded) integer numbers, with usual operations on them
-* Bool ::= the domain of Booleans Id ::= standard identifiers
-* AExp ::= Int | Id |  AExp + AExp | AExp / AExp * BExp ::= Bool | AExp <= AExp | | !BExp | BExp && BExp
-
-* Block ::= {} | { Stmt}
-* Stmt ::= Block | Id = AExp; | Stmt Stmt | if(BExp) Block else Block | while(BExp) Block
-* Pgm ::= int List{Id}; Stmt
-
-- When we run a program, we only change state
-- We can drop the requirement of declaration in advance, so we just have statements.
+Inspired by the IMP language in Software Foundations.
 -/
-partial def getNatM (e: Expr) : MetaM Nat := do
-  if ← isDefEq e (mkConst ``Nat.zero)
-    then return 0
-  else
-    let n ← mkFreshExprMVar (mkConst ``Nat)
-    let nSucc ← mkAppM ``Nat.succ #[n]
-    if ← isDefEq e nSucc
-    then
-      let pred ← getNatM n
-      return pred + 1
-    else
-      throwError s!"Expression {← ppExpr e} is not a natural number"
+def exprRelVars (vars: List (Name × Nat)) (stx: Syntax.Term) : MetaM Syntax.Term :=
+  match vars with
+  | [] => return stx
+  | (n, val) :: tail => do
+    let nId := mkIdent n
+    let nat := mkIdent ``Nat
+    let inner ←
+      exprRelVars tail stx
+    let arg := Syntax.mkNumLit <| toString val
+    `((fun ($nId : $nat) => $inner) $arg)
+
 
 def getNatRelVarsM (vars: List (Name × Nat))
   (t: Syntax.Term) : TermElabM Nat := do
-  match vars with
-  | [] =>
-    let e ← elabTermEnsuringType t (mkConst ``Nat)
-    getNatM e
-  | (n, val) :: tail =>
-    withLetDecl n (mkConst ``Nat) (toExpr val)
-      fun _ => getNatRelVarsM tail t
+  let stx ← exprRelVars vars t
+  let e ← elabTermEnsuringType stx (mkConst ``Nat)
+  Term.synthesizeSyntheticMVarsNoPostponing
+  unsafe evalExpr Nat (mkConst ``Nat) e
 
-elab "get_nat%" t:term : term => do
-  let e ← elabTerm t (mkConst ``Nat)
-  let n ← getNatM e
-  return toExpr n
-
-#eval get_nat% 4 * 5
 
 elab "get_nat_rel_n%" t:term : term => do
   let n ← getNatRelVarsM [(`n, 3)] t
   return toExpr n
 
-#eval get_nat% 3 * 5
-
 #eval get_nat_rel_n% (3 * 5 + n)
-
-def getBoolM (e: Expr) : MetaM Bool := do
-  if ← isDefEq e (mkConst ``Bool.false)
-    then return false
-  else
-    if ← isDefEq e (mkConst ``Bool.true)
-    then
-      return true
-    else
-      throwError s!"Expression {← ppExpr e} is not a boolean"
 
 def getBoolRelVarsM (vars: List (Name × Nat))
   (t: Syntax.Term) : TermElabM Bool := do
-  match vars with
-  | [] =>
-    let e ← elabTermEnsuringType t (mkConst ``Bool)
-    getBoolM e
-  | (n, val) :: tail =>
-    withLetDecl n (mkConst ``Bool) (toExpr val)
-      fun _ => getBoolRelVarsM tail t
+  let stx ← exprRelVars vars t
+  let e ← elabTermEnsuringType stx (mkConst ``Bool)
+  Term.synthesizeSyntheticMVarsNoPostponing
+  unsafe evalExpr Bool (mkConst ``Bool) e
 
+def getStrRelVarsM (vars: List (Name × Nat))
+  (t: Syntax.Term) : TermElabM String := do
+  let stx ← exprRelVars vars t
+  let e ← elabTermEnsuringType stx (mkConst ``String)
+  Term.synthesizeSyntheticMVarsNoPostponing
+  unsafe evalExpr String (mkConst ``String) e
 
-namespace ImpLang
+namespace LangurLang
 
 -- variables with name
-abbrev ImpLangM :=
-  StateT  (Std.HashMap Name Int) TermElabM
+abbrev State := Std.HashMap Name Nat
 
-def getVar (name: Name) : ImpLangM Int := do
+abbrev LangurLangM :=
+  StateT State TermElabM
+
+def getVar (name: Name) : LangurLangM Nat := do
   let m ← get
   return m.get! name
 
-def setVar (name : Name) (value : Int) :
-  ImpLangM Unit := do
+def setVar (name : Name) (value : Nat) :
+  LangurLangM Unit := do
   modify (fun m => m.insert name value)
 
-declare_syntax_cat arith_exp
-syntax num : arith_exp
-syntax ident : arith_exp
-syntax arith_exp "+" arith_exp : arith_exp
-syntax arith_exp "/" arith_exp : arith_exp
-syntax "(" arith_exp ")" : arith_exp
-syntax "[" term "]" : arith_exp -- for testing
-
-declare_syntax_cat bool_exp
-syntax "T" : bool_exp
-syntax "F" : bool_exp
-syntax "!" bool_exp:70 : bool_exp
-syntax bool_exp:35 "&&" bool_exp:36 : bool_exp
-syntax "(" bool_exp ")" : bool_exp
-syntax arith_exp "≤" arith_exp : bool_exp
-
-declare_syntax_cat imp_statement
-
-syntax imp_block := "{" (imp_statement)? "}"
-
-syntax imp_block : imp_statement
-
-syntax imp_statement imp_statement : imp_statement
-
-syntax ident ":=" arith_exp ";" : imp_statement
-
-syntax "if" ppSpace "(" bool_exp ")" ppSpace imp_block "else" imp_block : imp_statement
-
-syntax "while" "(" bool_exp ")" ppSpace imp_block : imp_statement
-
-inductive Statement where
-| block (s: Option Statement)
-| pair (first second: Statement)
-| assignment (var: Name) (value: Int)
-| if_statement (condition: Bool)
-  (then_statement else_statement : Option Statement)
-| while_statement (condition: Bool) (body: Option Statement)
-deriving Repr, Inhabited, ToExpr
-
-partial def getIntM : TSyntax `arith_exp → ImpLangM Int
-| `(arith_exp| ($e:arith_exp)) => getIntM e
-| `(arith_exp| [$e:term]) => do
+def getNatInCtxM (stx: Syntax.Term) : LangurLangM Nat := do
   let m ← get
-  getNatRelVarsM (m.toList.map (fun (k, v) => (k, v.toNat))) e
-| `(arith_exp| $n:num) => return n.getNat
-| `(arith_exp| $a:arith_exp + $b:arith_exp) => do
-  let aInt ← getIntM a
-  let bInt ← getIntM b
-  return aInt + bInt
-| `(arith_exp| $a:arith_exp / $b:arith_exp) => do
-  let aInt ← getIntM a
-  let bInt ← getIntM b
-  return aInt / bInt
-| `(arith_exp| $n:ident) => do
-  getVar n.getId
-| _ => Elab.throwUnsupportedSyntax
+  getNatRelVarsM m.toList stx
 
-partial def getBoolM : TSyntax `bool_exp → ImpLangM Bool
-| `(bool_exp| T) => return true
-| `(bool_exp| F) => return false
-| `(bool_exp| ! $b) => do
-  let bVal ← getBoolM b
-  return ¬bVal
-| `(bool_exp| $b && $b' ) => do
-  let bVal ← getBoolM b
-  let bVal' ← getBoolM b'
-  return bVal && bVal'
-| `(bool_exp | $x:arith_exp ≤ $y:arith_exp) => do
-  let xVal ← getIntM x
-  let yVal ← getIntM y
-  return xVal ≤ yVal
-| `(bool_exp| ($b)) => getBoolM b
-| _ => throwUnsupportedSyntax
+def getBoolInCtxM (stx: Syntax.Term) : LangurLangM Bool := do
+  let m ← get
+  getBoolRelVarsM m.toList stx
 
-partial def runStatementM :
-  TSyntax `imp_statement → ImpLangM Unit
-| `(imp_statement| {}) => return
-| `(imp_statement| {$s}) => do
-    runStatementM s
-| `(imp_statement| $s₁ $s₂) => do
-  runStatementM s₁
-  runStatementM s₂
-| `(imp_statement| $name:ident := $val ;) => do
-  let value ← getIntM val
+def getStrInCtxM (stx: Syntax.Term) : LangurLangM String := do
+  let m ← get
+  getStrRelVarsM m.toList stx
+
+declare_syntax_cat langur_statement
+
+syntax langur_block := "{" sepBy(langur_statement, ";", ";", allowTrailingSep) "}"
+
+syntax langur_program := sepBy(langur_statement, ";", ";", allowTrailingSep)
+
+syntax langur_block : langur_statement
+
+syntax ident ":=" term : langur_statement
+
+syntax "if" ppSpace "(" term ")" ppSpace langur_block "else" langur_block : langur_statement
+
+syntax "while" "(" term ")" ppSpace langur_block : langur_statement
+
+syntax "print" term  : langur_statement
+
+partial def interpretM :
+  TSyntax `langur_statement → LangurLangM Unit
+| `(langur_statement| {$s;*}) => do
+    let stmts := s.getElems
+    for stmt in stmts do
+      interpretM stmt
+| `(langur_statement| $name:ident := $val) => do
+  let value ← getNatInCtxM val
   let n := name.getId
   setVar n value
-| `(imp_statement| if ($p) $t else $e) => do
-  let c ← getBoolM p
+| `(langur_statement| if ($p) $t else $e) => do
+  let c ← getBoolInCtxM p
   if c
     then runBlockM t
     else runBlockM e
-| w@`(imp_statement| while ($p) $b) => do
-  let c ← getBoolM p
-  if c then
-    runBlockM b
-    runStatementM w
+| `(langur_statement| while ($p) $b) => do
+  let rec loop : LangurLangM Unit := do
+    let c ← getBoolInCtxM p
+    if c then
+      runBlockM b
+      loop
+  loop
+| stat@`(langur_statement| print $s) => do
+  let str ← getStrInCtxM s
+  logInfoAt stat str
 | _ => throwUnsupportedSyntax
-where runBlockM (bs : TSyntax ``imp_block): ImpLangM Unit :=
+where runBlockM (bs : TSyntax ``langur_block): LangurLangM Unit :=
   match bs with
-  | `(imp_block| {}) => return
-  | `(imp_block| {$s}) =>
-    runStatementM s
+  | `(langur_block| {$s;*}) =>
+    let stmts := s.getElems
+    for stmt in stmts do
+      interpretM stmt
   | _ => throwUnsupportedSyntax
 
-
--- Side effects not controlled. Only for testing.
-partial def getStatementM :
-  TSyntax `imp_statement → ImpLangM Statement
-| `(imp_statement| {}) => return .block (none)
-| `(imp_statement| {$s}) => do
-  let stat ← getStatementM s
-  return .block (some stat)
-| `(imp_statement| $s₁ $s₂) => do
-  let stat₁ ← getStatementM s₁
-  let stat₂ ← getStatementM s₂
-  return .pair stat₁ stat₂
-| `(imp_statement| $name:ident := $val ;) => do
-  let value ← getIntM val
-  let n := name.getId
-  setVar n value
-  return .assignment n value
-| `(imp_statement| if ($p) $t else $e) => do
-  let c ← getBoolM p
-  let then_block ← getBlockM t
-  let else_block ← getBlockM e
-  return .if_statement c then_block else_block
-| `(imp_statement| while ($p) $b) => do
-  let c ← getBoolM p
-  let body ← getBlockM b
-  return .while_statement c body
-| _ => throwUnsupportedSyntax
-where getBlockM (bs : TSyntax ``imp_block): ImpLangM (Option Statement) :=
-  match bs with
-  | `(imp_block| {}) => return none
-  | `(imp_block| {$s}) =>
-    -- Error: will give side-effects on all branches
-    getStatementM s
+def interpretProgramM (pgm: TSyntax ``langur_program) : LangurLangM Unit := do
+  match pgm with
+  | `(langur_program| $s;*) =>
+    let stmts := s.getElems
+    for stmt in stmts do
+      interpretM stmt
   | _ => throwUnsupportedSyntax
 
-
-elab "#run_stat" s:imp_statement "go" : command  =>
+elab "#leap" ss:langur_program r:"return" : command  =>
   Command.liftTermElabM do
-  let (_, m) ← runStatementM s |>.run {}
-  logInfo m!"Final variable state: {m.toList}"
+  let (_, m) ← interpretProgramM ss |>.run {}
+  logInfoAt r m!"Final variable state: {m.toList}"
 
 
-#run_stat
+#leap
   n := 3; m := 4 + 5;
-  if (2 ≤ n) {n := (5 + 3 + [2 * 7]);} else {n := 2; m := 7;}
-  go
+  if (n ≤ 4) {n := (5 + 3 + (2 * 7));} else {n := 2; m := 7}
+  return
 
-#run_stat
+#leap
   n := 10; sum := 0;
   i := 1;
-  while (i ≤ n) {sum := sum + i; i := i + 1;} go
+  while (i ≤ n) {sum := sum + i; i := i + 1} return
 
+def eg.n := 59
 
-elab "bool%" b:bool_exp ";" : term => do
-  let bVal ← getBoolM b |>.run' {}
-  return toExpr bVal
+open eg in
+#leap
+  i := 2;
+  is_prime := 1;
+  while (i < n && is_prime = 1) {
+    if (i ∣ n) {
+      is_prime := 0
+    } else {};
+    i := i + 1
+  };
+  if (is_prime = 1) {
+    print s!"{n} is prime"
+  } else {
+    print s!"{n} is not prime; divisor: {i - 1}"
+  }
+  return
 
-#eval bool% (!T) && F;
-
-#eval (!true) && false
-
-#eval 3 + 4
-
-#eval bool% 3 ≤ 2 ;
-
-elab "imp_stat%" s:imp_statement : term  => do
-  let (stat, m) ← getStatementM s |>.run {}
-  logInfo m!"Final variable state: {m.toList}"
-  return toExpr stat
-
-#eval imp_stat% n := 3; m := 4;
-  if (2 ≤ n) {} else {n := 2;}
-
-#eval 1 + 2
-
-#check withLetDecl
-
-elab "checklet" t:term : term => do
-  withLetDecl `n (mkConst ``Nat) (mkConst ``Nat.zero) fun _ => do
-    let e ← elabTerm t none
-    logInfo e
-    let v ←
-      getNatM e
-    logInfo m!"value: {v};"
-    return mkConst ``Nat.zero
-
-#eval checklet (n + 3)
-
-#check mkLetFVars
+end LangurLang
