@@ -136,54 +136,51 @@ theorem quickSort_sorted (l : List α) : Sorted (quickSort l) := by
     apply sorted_sandwitch <;> grind
 termination_by l.length
 
-def largest (l: List α) (h: l ≠ []) : α :=
-  match l with
-  | [] => by contradiction
-  | [x] => x
-  | x :: y :: xs =>
-    max x (largest (y :: xs) (by simp))
 
-theorem largest_mem (l: List α) (h: l ≠ []) :
-  largest l h ∈ l := by
-  match l with
-  | [x] => simp [largest]
-  | x :: y :: xs =>
-    have ih := largest_mem (y :: xs) (by simp)
-    simp [largest]
-    by_cases x ≤ largest (y :: xs)
-      (by simp) <;> grind
+@[simp, grind .]
+def monotone (l : List α) : Prop := ∀ i j,
+  (h₁: i < j) → (h₂ : j < l.length) →
+    l[i]' (by grind) ≤ l[j]' (by grind)
 
-theorem largest_ge_all (l: List α) (h: l ≠ []) (x: α) :
-  x ∈ l → x ≤ largest l h := by
-  match l with
-  | [y] =>
-    grind [largest]
-  | y :: z :: xs =>
-    have ih :=
-      largest_ge_all (z :: xs) (by simp) x
-    grind [largest]
+theorem monotone_of_sorted (l : List α)
+  (h : Sorted l) : monotone l := by
+  induction h with
+  | nil => grind
+  | singleton x =>
+    grind
+  | step x y l hxy tail_sorted ih =>
+    intro i j h₁ h₂
+    cases i with
+    | zero =>
+      cases j with
+      | zero => contradiction
+      | succ j' =>
+        trans y <;> grind
+    | succ i' =>
+      cases j with
+      | zero => contradiction
+      | succ j' => grind
 
-def largestNat (l: List Nat)  : Nat :=
-  match l with
-  | [] => 0
-  | [x] => x
-  | x :: y :: xs =>
-    Nat.max x (largestNat (y :: xs))
+@[grind .]
+theorem tail_monotone_of_monotone {y: α}
+  {ys : List α} (h : monotone (y :: ys)) :
+  monotone ys := by
+  intro i j h₁ h₂
+  have h₁' : i + 1 < j + 1 := by
+    grind
+  have h₂' : j + 1 < (ys.length + 1) := by
+    grind
+  specialize h (i + 1) (j + 1) h₁' h₂'
+  grind
 
-theorem largestNat_mem (l: List Nat) (h: l ≠ []) :
-  largestNat l ∈ l := by
-  match l with
-  | [x] => simp [largestNat]
-  | x :: y :: xs =>
-    have ih := largestNat_mem (y :: xs) (by simp)
-    grind [largestNat]
-
-theorem largestNat_ge_all (l: List Nat) (h: l ≠ []) (x: Nat) :
-  x ∈ l → x ≤ largestNat l := by
-  match l with
-  | [y] =>
-    grind [largestNat]
-  | y :: z :: xs =>
-    have ih :=
-      largestNat_ge_all (z :: xs) (by simp) x
-    grind [largestNat]
+theorem sorted_of_monotone (l : List α)
+  (h : monotone l) : Sorted l := by
+  induction l with
+  | nil => apply Sorted.nil
+  | cons x xs ih =>
+    cases xs with
+    | nil => apply Sorted.singleton
+    | cons y ys =>
+      apply Sorted.step
+      · apply h 0 1 (by simp) (by simp)
+      · grind

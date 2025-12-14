@@ -5,7 +5,7 @@ def largestNat (l: List Nat)  : Nat :=
   | [] => 0
   | [x] => x
   | x :: y :: xs =>
-    Nat.max x (largestNat (y :: xs))
+    max x (largestNat (y :: xs))
 
 theorem largestNat_mem (l: List Nat) (h: l ≠ []) :
   largestNat l ∈ l := by
