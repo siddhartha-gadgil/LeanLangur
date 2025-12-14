@@ -23,9 +23,6 @@ def exprRelVars (vars: List (Name × Nat)) (stx: Syntax.Term) : MetaM Syntax.Ter
 def getNatRelVarsM (vars: List (Name × Nat))
   (t: Syntax.Term) : TermElabM Nat := do
   let stx ← exprRelVars vars t
-  let lctx ← getLCtx
-  for decl in lctx do
-    logInfo m!"LCtx decl: {decl.userName} : {decl.type}"
   let e ← withoutErrToSorry do
     elabTermEnsuringType stx (mkConst ``Nat)
   Term.synthesizeSyntheticMVarsNoPostponing
@@ -35,8 +32,6 @@ def getNatRelVarsM (vars: List (Name × Nat))
 elab "get_nat_rel_n%" t:term : term => do
   let n ← getNatRelVarsM [(`n, 3)] t
   return toExpr n
-
-#eval get_nat_rel_n% (3 * 5 + n)
 
 def getBoolRelVarsM (vars: List (Name × Nat))
   (t: Syntax.Term) : TermElabM Bool := do
@@ -149,62 +144,19 @@ elab "#leap" ss:langur_program r:"return" : command  =>
   let (_, m) ← interpretProgramM ss |>.run {}
   logInfoAt r m!"Final variable state: {m.toList}"
 
-elab "#climb" ss:langur_program
+elab "climb%" ss:langur_program
     r:"return" v:term : term  => do
     let (_, m) ← interpretProgramM ss |>.run {}
-    logInfoAt r m!"Final variable state: {m.toList}"
     let t ← exprRelVars m.toList v
     elabTerm t none
 
-
-#leap
-  n := 3; m := 4 + 5;
-  if (n ≤ 4) {n := (5 + 3 + (2 * 7));} else {n := 2; m := 7}
-  return
-
-#leap
-  n := 10; sum := 0;
-  i := 1;
-  while (i ≤ n) {sum := sum + i; i := i + 1} return
-
-def eg.n := 59
-
-open eg in
-#leap
-  i := 2;
-  is_prime := 1;
-  while (i < n && is_prime = 1) {
-    if (i ∣ n) {
-      is_prime := 0
-    } else {};
-    i := i + 1
-  };
-  if (is_prime = 1) {
-    print s!"{n} is prime"
-  } else {
-    print s!"{n} is not prime; divisor: {i - 1}"
-  }
-  return
-
-
-def primality  :=
-  #climb
-    n := 57;
-    i := 2;
-    is_prime := 1;
-    while (i < n && is_prime = 1) {
-    if (i ∣ n) {
-      is_prime := 0
-    } else {};
-    i := i + 1
-    };
-    if (is_prime = 1) {
-    print s!"{n} is prime"
-    } else {
-    print s!"{n} is not prime; divisor: {i - 1}"
-    }
-    return is_prime == 1
-
-#eval primality
+macro "climb%" ss:langur_program "from%" init:langur_program
+    "return" v:term : term  => do
+    match init, ss with
+    | `(langur_program| $s;*), `(langur_program| $t;*) => do
+      let lines := s.getElems ++ t.getElems
+      let prog ← `(langur_program| $lines;*)
+      `(climb% $prog return $v)
+    | _, _ => Macro.throwError "Invalid syntax in climb% from% ... return ..."
 
 end LangurLang
