@@ -23,7 +23,11 @@ def exprRelVars (vars: List (Name × Nat)) (stx: Syntax.Term) : MetaM Syntax.Ter
 def getNatRelVarsM (vars: List (Name × Nat))
   (t: Syntax.Term) : TermElabM Nat := do
   let stx ← exprRelVars vars t
-  let e ← elabTermEnsuringType stx (mkConst ``Nat)
+  let lctx ← getLCtx
+  for decl in lctx do
+    logInfo m!"LCtx decl: {decl.userName} : {decl.type}"
+  let e ← withoutErrToSorry do
+    elabTermEnsuringType stx (mkConst ``Nat)
   Term.synthesizeSyntheticMVarsNoPostponing
   unsafe evalExpr Nat (mkConst ``Nat) e
 
@@ -44,7 +48,8 @@ def getBoolRelVarsM (vars: List (Name × Nat))
 def getStrRelVarsM (vars: List (Name × Nat))
   (t: Syntax.Term) : TermElabM String := do
   let stx ← exprRelVars vars t
-  let e ← elabTermEnsuringType stx (mkConst ``String)
+  let e ← withoutErrToSorry do
+    elabTermEnsuringType stx (mkConst ``String)
   Term.synthesizeSyntheticMVarsNoPostponing
   unsafe evalExpr String (mkConst ``String) e
 
@@ -134,10 +139,22 @@ def interpretProgramM (pgm: TSyntax ``langur_program) : LangurLangM Unit := do
       interpretM stmt
   | _ => throwUnsupportedSyntax
 
+def climbProgramM
+  (pgm: TSyntax ``langur_program) (init: State) : TermElabM (State) := do
+  let (_, m) ← interpretProgramM pgm |>.run init
+  return m
+
 elab "#leap" ss:langur_program r:"return" : command  =>
   Command.liftTermElabM do
   let (_, m) ← interpretProgramM ss |>.run {}
   logInfoAt r m!"Final variable state: {m.toList}"
+
+elab "#climb" ss:langur_program
+    r:"return" v:term : term  => do
+    let (_, m) ← interpretProgramM ss |>.run {}
+    logInfoAt r m!"Final variable state: {m.toList}"
+    let t ← exprRelVars m.toList v
+    elabTerm t none
 
 
 #leap
@@ -168,5 +185,26 @@ open eg in
     print s!"{n} is not prime; divisor: {i - 1}"
   }
   return
+
+
+def primality  :=
+  #climb
+    n := 57;
+    i := 2;
+    is_prime := 1;
+    while (i < n && is_prime = 1) {
+    if (i ∣ n) {
+      is_prime := 0
+    } else {};
+    i := i + 1
+    };
+    if (is_prime = 1) {
+    print s!"{n} is prime"
+    } else {
+    print s!"{n} is not prime; divisor: {i - 1}"
+    }
+    return is_prime == 1
+
+#eval primality
 
 end LangurLang
