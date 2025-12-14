@@ -67,6 +67,8 @@ theorem mem_iff_mem_quickSort (l: List α)(x : α) :
     grind
 termination_by l.length
 
+attribute [grind .] List.count_eq_zero_of_not_mem
+
 @[grind .]
 theorem count_sum_above_below_pivot (pivot : α)
   (l : List α)(x : α) :
@@ -75,7 +77,7 @@ theorem count_sum_above_below_pivot (pivot : α)
   induction l with
   | nil => simp
   | cons head tail ih =>
-      grind [List.count_eq_zero_of_not_mem]
+      grind
 
 inductive Sorted : List α → Prop
   | nil : Sorted []
@@ -123,13 +125,13 @@ theorem quickSort_sorted (l : List α) : Sorted (quickSort l) := by
     apply Sorted.nil
   | cons pivot l =>
     rw [quickSort_cons]
-    apply sorted_sandwitch
-    · have : (smaller pivot l).length < (pivot :: l).length :=
+    have : (smaller pivot l).length < (pivot :: l).length :=
         by grind
-      apply quickSort_sorted (smaller pivot l)
-    · have : (larger pivot l).length < (pivot :: l).length :=
+    have : (larger pivot l).length < (pivot :: l).length :=
         by grind
-      apply quickSort_sorted (larger pivot l)
-    · grind
-    · grind
+    have h_small :=
+      quickSort_sorted (smaller pivot l)
+    have h_large :=
+      quickSort_sorted (larger pivot l)
+    apply sorted_sandwitch <;> grind
 termination_by l.length
