@@ -33,7 +33,7 @@ theorem mem_node {α : Type} (x: α) (l r : LabelledTree α) (y : α) :
 def isOrdered : LabelledTree α → Prop
   | leaf _ => True
   | node v l r =>
-    (∀ x ∈ l, x ≤ v) ∧ (∀ x ∈ r, v ≤ x) ∧ isOrdered l ∧ isOrdered r
+    (∀ x ∈ l, x ≤ v) ∧ (∀ x ∈ r, v ≤ x) ∧ isOrdered l ∧ isOrdered r ∧ (v ∈ l ∨ v ∈ r)
 
 @[grind .]
 theorem isOrdered_leaf (x: α) :
@@ -43,16 +43,11 @@ theorem isOrdered_leaf (x: α) :
 @[grind .]
 theorem isOrdered_left_below (v: α) (l r: LabelledTree α) (h: isOrdered (node v l r)) :
   ∀ x ∈ l, x ≤ v := by
-  simp [isOrdered, Membership.mem] at h
-  rcases h with ⟨h₁, h₂, h₃, h₄⟩
-  exact h₁
+  grind
 
 @[grind .]
 theorem isOrdered_right_above (v: α) (l r: LabelledTree α) (h: isOrdered (node v l r)) :
-  ∀ x ∈ r, v ≤ x := by
-  simp  at h
-  rcases h with ⟨h₁, h₂, h₃, h₄⟩
-  exact h₂
+  ∀ x ∈ r, v ≤ x := by grind
 
 @[grind .]
 theorem isOrdered_left_subtree (v: α) (l r: LabelledTree α) (h: isOrdered (node v l r)) :
@@ -83,16 +78,9 @@ theorem mem_addLabel (t: LabelledTree α) (label: α) (x : α) :
     x ∈ LabelledTree.addLabel t label ↔ x = label ∨ x ∈ t := by
   induction t with
   | leaf v =>
-    by_cases h: label ≤ v
-    · grind
-    · grind
+    by_cases h: label ≤ v <;> grind
   | node v l r ihl ihr =>
-    simp [LabelledTree.addLabel]
-    by_cases h: label ≤ v
-    · simp [h]
-      grind
-    · simp [h]
-      grind
+    by_cases h: label ≤ v <;> grind
 
 
 theorem ordered_addLabel (t: LabelledTree α) (label: α)
@@ -100,17 +88,9 @@ theorem ordered_addLabel (t: LabelledTree α) (label: α)
     isOrdered (LabelledTree.addLabel t label) := by
   induction t with
   | leaf x =>
-    if h1: label ≤ x then
-      grind
-    else
-      grind
+    by_cases h1: label ≤ x <;> grind
   | node v l r ihl ihr =>
-    if h1: label ≤ v then
-      simp [LabelledTree.addLabel, h1]
-      grind
-    else
-      simp [LabelledTree.addLabel, h1]
-      grind
+    by_cases h1: label ≤ v <;> grind
 
 -- Copied and adapted from BinTree.lean, not needed
 
