@@ -40,9 +40,7 @@ theorem largest_mem (l: List α) (h: l ≠ []) :
   | [x] => simp [largest]
   | x :: y :: xs =>
     have ih := largest_mem (y :: xs) (by simp)
-    simp [largest]
-    by_cases x ≤ largest (y :: xs)
-      (by simp) <;> grind
+    grind [largest]
 
 theorem largest_ge_all (l: List α) (h: l ≠ []) (x: α) :
   x ∈ l → x ≤ largest l h := by

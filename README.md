@@ -1,2 +1,3 @@
 # LeanLangur
-Expositions and demos for Lean Prover
+
+Expositions and demos for Lean Prover.
