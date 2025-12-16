@@ -30,33 +30,33 @@ theorem mem_node {α : Type} (x: α) (l r : LabelledTree α) (y : α) :
 
 
 @[grind ., simp]
-def isOrdered : LabelledTree α → Prop
+def IsOrdered : LabelledTree α → Prop
   | leaf _ => True
   | node v l r =>
-    (∀ x ∈ l, x ≤ v) ∧ (∀ x ∈ r, v ≤ x) ∧ isOrdered l ∧ isOrdered r ∧ (v ∈ l ∨ v ∈ r)
+    (∀ x ∈ l, x ≤ v) ∧ (∀ x ∈ r, v ≤ x) ∧ IsOrdered l ∧ IsOrdered r ∧ (v ∈ l ∨ v ∈ r)
 
 @[grind .]
-theorem isOrdered_leaf (x: α) :
-  isOrdered (leaf x) := by
-  simp [isOrdered]
+theorem IsOrdered_leaf (x: α) :
+  IsOrdered (leaf x) := by
+  simp [IsOrdered]
 
 @[grind .]
-theorem isOrdered_left_below (v: α) (l r: LabelledTree α) (h: isOrdered (node v l r)) :
+theorem IsOrdered_left_below (v: α) (l r: LabelledTree α) (h: IsOrdered (node v l r)) :
   ∀ x ∈ l, x ≤ v := by
   grind
 
 @[grind .]
-theorem isOrdered_right_above (v: α) (l r: LabelledTree α) (h: isOrdered (node v l r)) :
+theorem IsOrdered_right_above (v: α) (l r: LabelledTree α) (h: IsOrdered (node v l r)) :
   ∀ x ∈ r, v ≤ x := by grind
 
 @[grind .]
-theorem isOrdered_left_subtree (v: α) (l r: LabelledTree α) (h: isOrdered (node v l r)) :
-  isOrdered l := by
+theorem IsOrdered_left_subtree (v: α) (l r: LabelledTree α) (h: IsOrdered (node v l r)) :
+  IsOrdered l := by
   grind
 
 @[grind .]
-theorem isOrdered_right_subtree (v: α) (l r: LabelledTree α) (h: isOrdered (node v l r)) :
-  isOrdered r := by
+theorem IsOrdered_right_subtree (v: α) (l r: LabelledTree α) (h: IsOrdered (node v l r)) :
+  IsOrdered r := by
   grind
 
 @[grind .]
@@ -84,34 +84,46 @@ theorem mem_addLabel (t: LabelledTree α) (label: α) (x : α) :
 
 
 theorem ordered_addLabel (t: LabelledTree α) (label: α)
-  (h: isOrdered t) :
-    isOrdered (LabelledTree.addLabel t label) := by
+  (h: IsOrdered t) :
+    IsOrdered (LabelledTree.addLabel t label) := by
   induction t with
   | leaf x =>
     by_cases h1: label ≤ x <;> grind
   | node v l r ihl ihr =>
     by_cases h1: label ≤ v <;> grind
 
--- Copied and adapted from BinTree.lean, not needed
+def pivot : LabelledTree α → α
+| node l .. => l
+| leaf l => l
 
 @[grind .]
-def LabelledTree.toList {α : Type} : LabelledTree α → List α
-  | leaf x => [x]
-  | node _ l r =>
-    LabelledTree.toList l ++ LabelledTree.toList r
+theorem pivot_member (l: LabelledTree α) (h₀ : IsOrdered l) :
+  pivot l ∈ l := by
+  induction l with
+  | leaf l => grind [pivot]
+  | node label left right ihl ihr =>
+    grind [pivot]
 
-def exampleTree : LabelledTree Nat :=
-  node 0 (node 0 (leaf 1) (leaf 2)) (leaf 3)
+@[grind .]
+def fastCheckMem (label : α)(l: LabelledTree α) : Bool := match l with
+  | leaf l => l == label
+  | node l left right =>
+    if l == label then true
+    else if label < l then fastCheckMem label left
+    else fastCheckMem label right
 
-#eval exampleTree.toList  -- Output: [1, 2, 3]
-
-
-theorem mem_iff_mem_toList {α : Type} (t : LabelledTree α) (x : α) :
-    x ∈ t ↔ x ∈ LabelledTree.toList t := by
-    apply Iff.intro
-    · induction t with
-    | leaf a => grind
-    | node _ l r ihl ihr => grind
-    · induction t with
-    | leaf a => grind
-    | node _ l r ihl ihr => grind
+theorem fastCheckMem_correct (label : α)(l: LabelledTree α)(h : IsOrdered l):
+  fastCheckMem label l = true ↔ label ∈ l := by
+  induction l with
+  | leaf label' =>
+    grind
+  | node label' left right ihl ihr =>
+    if p:label' = label
+      then
+        grind
+    else
+      if p':label < label'
+      then
+        grind
+      else
+        grind
