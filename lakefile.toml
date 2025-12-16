@@ -16,3 +16,6 @@ name = "LeanLangur"
 
 [[lean_lib]]
 name = "LeanLangur.Draft"
+
+[[lean_lib]]
+name = "LeanLangur.MonkeyTricks"
