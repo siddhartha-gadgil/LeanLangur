@@ -152,7 +152,7 @@ theorem quickSort_sorted (l : List α) : Sorted (quickSort l) := by
 termination_by l.length
 
 
-@[simp, grind .]
+@[grind .]
 def monotone (l : List α) : Prop := ∀ i j,
   (h₁: i < j) → (h₂ : j < l.length) →
     l[i]' (by grind) ≤ l[j]' (by grind)
