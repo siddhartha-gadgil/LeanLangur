@@ -79,6 +79,21 @@ theorem count_sum_above_below_pivot (pivot : α)
   | cons head tail ih =>
       grind
 
+theorem count_eq_count_quickSort (l : List α)
+  (x : α) :
+    l.count x = (quickSort l).count x := by
+  cases l with
+  | nil => simp
+  | cons pivot tail =>
+    have : (smaller pivot tail).length < (pivot :: tail).length := by
+      grind
+    have : (larger pivot tail).length < (pivot :: tail).length := by
+      grind
+    have ih₁ := count_eq_count_quickSort (smaller pivot tail) x
+    have ih₂ := count_eq_count_quickSort (larger pivot tail) x
+    grind
+termination_by l.length
+
 inductive Sorted : List α → Prop
   | nil : Sorted []
   | singleton (x : α) : Sorted [x]
