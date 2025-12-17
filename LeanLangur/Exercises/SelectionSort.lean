@@ -22,23 +22,14 @@ def smallest (l: List α) (h: l ≠ []) : α :=
 
 @[grind .]
 theorem smallest_mem (l: List α) (h: l ≠ []) :
-  smallest l h ∈ l := by
-  match l with
-  | [x] => simp [smallest]
-  | x :: y :: xs =>
-    have ih := smallest_mem (y :: xs) (by simp)
-    grind [smallest]
+    smallest l h ∈ l := by
+  sorry
 
 @[grind .]
-theorem smallest_le_all (l: List α) (h: l ≠ []) (x: α) :
-  x ∈ l → smallest l h ≤ x := by
-  match l with
-  | [y] =>
-    grind [smallest]
-  | y :: z :: xs =>
-    have ih :=
-      smallest_le_all (z :: xs) (by simp) x
-    grind [smallest]
+theorem smallest_le_all (l: List α)
+    (h: l ≠ []) (x: α) :
+    x ∈ l → smallest l h ≤ x := by
+  sorry
 
 /-!
 We now implement Selection Sort using smallest.
@@ -55,31 +46,8 @@ termination_by l => l.length
 @[grind .]
 theorem mem_iff_mem_selectionSort (l: List α)(x : α) :
     x ∈ l ↔ x ∈ selectionSort l := by
-  apply Iff.intro
-  match l with
-  | [] => grind
-  | head ::tail =>
-    simp [selectionSort]
-    if p:x = smallest (head :: tail) (by simp) then
-      grind
-    else
-      have : ((head ::tail).erase (smallest (head :: tail) (by simp))).length < (head :: tail).length := by grind
-      have ih := mem_iff_mem_selectionSort ((head ::tail).erase (smallest (head :: tail) (by simp))) x
-      grind
-  · match l with
-  | [] => grind
-  | head :: tail =>
-    have : ((head ::tail).erase (smallest (head :: tail) (by simp))).length < (head :: tail).length := by grind
-    have ih := mem_iff_mem_selectionSort ((head ::tail).erase (smallest (head :: tail) (by simp))) x
-    grind
-termination_by l.length
+  sorry
 
 theorem selectionSort_sorted (l : List α) :
-  Sorted (selectionSort l) := by
-  match l with
-  | [] => grind [Sorted.nil]
-  | head :: tail =>
-    have : ((head ::tail).erase (smallest (head :: tail) (by simp))).length < (head :: tail).length := by grind
-    have ih := selectionSort_sorted ((head ::tail).erase (smallest (head :: tail) (by simp)))
-    grind
-termination_by l.length
+    Sorted (selectionSort l) := by
+  sorry
