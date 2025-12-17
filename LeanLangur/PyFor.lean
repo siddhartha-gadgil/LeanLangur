@@ -58,6 +58,8 @@ def eg : List Nat :=
 We can define a custom syntax for Python-style for comprehensions.
 -/
 
+section PyForComprehension
+
 macro "[" t:term "pyfor" x:ident "in" l:term  "]" : term => do
   let fn ← `(fun $x => $t)
   `(List.map $fn $l)
@@ -99,3 +101,10 @@ macro_rules
 
 #eval [x * x pyFor x in [1, 2, 3, 4, 5]]
 #eval [x * x pyFor l in [[1, 5, 2], [3, 4, 5]] pyFor x in l]
+
+/-!
+## Exercise
+
+Using `List.fliter` modify the `pyfor` syntax to support `if` conditions in for comprehensions.
+-/
+end PyForComprehension

@@ -59,3 +59,12 @@ def primality  :=
     from%
     n := 57;
     return s!"Primality of {n}: {is_prime == 1}"
+
+/-!
+## Exercise
+
+Implement a `for` loop construct in LangurLang following `C` syntax:
+```c
+for (init; cond; step) { body }
+```
+-/

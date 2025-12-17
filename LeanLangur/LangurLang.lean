@@ -6,7 +6,15 @@ open Lean Meta Elab Term
 /-!
 # LangurLang: A tiny imperative language
 
-Inspired by the IMP language in Software Foundations.
+Inspired by the IMP language in Software Foundations. We have only natural number variables, and the following statements:
+* Assignment: `x := expr`
+* Conditional: `if (cond) { ... } else { ... }`
+* While loops: `while (cond) { ... }`
+* Print statements: `print expr`
+
+We use a *shallow embedding*, so natural numbers are represented using Lean's `Nat` type and Booleans using Lean's `Bool` type.
+
+We skip at first extracting natural numbers from expressions, and directly evaluate expressions to `Nat`, `Bool` or `String` in a context of variable bindings.
 -/
 def exprRelVars (vars: List (Name × Nat)) (stx: Syntax.Term) : MetaM Syntax.Term :=
   match vars with
@@ -27,11 +35,6 @@ def getNatRelVarsM (vars: List (Name × Nat))
     elabTermEnsuringType stx (mkConst ``Nat)
   Term.synthesizeSyntheticMVarsNoPostponing
   unsafe evalExpr Nat (mkConst ``Nat) e
-
-
-elab "get_nat_rel_n%" t:term : term => do
-  let n ← getNatRelVarsM [(`n, 3)] t
-  return toExpr n
 
 def getBoolRelVarsM (vars: List (Name × Nat))
   (t: Syntax.Term) : TermElabM Bool := do
@@ -145,7 +148,7 @@ elab "#leap" ss:langur_program r:"return" : command  =>
   logInfoAt r m!"Final variable state: {m.toList}"
 
 elab "climb%" ss:langur_program
-    r:"return" v:term : term  => do
+    "return" v:term : term  => do
     let (_, m) ← interpretProgramM ss |>.run {}
     let t ← exprRelVars m.toList v
     elabTerm t none
