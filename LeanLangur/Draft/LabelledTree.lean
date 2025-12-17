@@ -63,7 +63,10 @@ theorem IsOrdered_right_subtree (v: α) (l r: LabelledTree α) (h: IsOrdered (no
 def LabelledTree.addLabel (t: LabelledTree α) (label: α) : LabelledTree α :=
   match t with
   | leaf x =>
-    if label ≤ x then
+    if label = x then
+      leaf x
+    else
+    if label < x then
       node label (leaf label) (leaf x)
     else
       node label (leaf x) (leaf label)
