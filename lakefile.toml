@@ -19,3 +19,6 @@ name = "LeanLangur.Draft"
 
 [[lean_lib]]
 name = "LeanLangur.MonkeyTricks"
+
+[[lean_exe]]
+name = "quicksort"
