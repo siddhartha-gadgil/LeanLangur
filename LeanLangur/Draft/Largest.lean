@@ -27,9 +27,9 @@ theorem largestNat_ge_all (l: List Nat) (h: l ≠ []) (x: Nat) :
 
 variable {α : Type}[LinearOrder α]
 
+@[grind .]
 def largest (l: List α) (h: l ≠ []) : α :=
   match l with
-  | [] => by contradiction
   | [x] => x
   | x :: y :: xs =>
     max x (largest (y :: xs) (by simp))
@@ -37,17 +37,17 @@ def largest (l: List α) (h: l ≠ []) : α :=
 theorem largest_mem (l: List α) (h: l ≠ []) :
   largest l h ∈ l := by
   match l with
-  | [x] => simp [largest]
+  | [x] => grind
   | x :: y :: xs =>
     have ih := largest_mem (y :: xs) (by simp)
-    grind [largest]
+    grind
 
 theorem largest_ge_all (l: List α) (h: l ≠ []) (x: α) :
   x ∈ l → x ≤ largest l h := by
   match l with
   | [y] =>
-    grind [largest]
+    grind
   | y :: z :: xs =>
     have ih :=
       largest_ge_all (z :: xs) (by simp) x
-    grind [largest]
+    grind
