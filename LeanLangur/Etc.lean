@@ -45,3 +45,18 @@ theorem irrational_power_irrational_rational :
     use sqrt2, sqrt2
     simp [irrational_sqrt_two]
     assumption
+
+theorem easy : 1 ≤ 5 := by
+  apply Nat.le_succ_of_le
+  apply Nat.le_succ_of_le
+  apply Nat.le_succ_of_le
+  apply Nat.le_succ_of_le
+  apply Nat.le_refl
+
+#print easy
+
+def IsRational (x : ℝ) : Prop :=
+  ∃ (α  : ℚ), x = α
+
+set_option pp.all true in
+#print IsRational
