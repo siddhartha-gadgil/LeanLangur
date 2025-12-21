@@ -33,21 +33,28 @@ def getTryThisTacticText? (input: String) : MetaM (Option String) := do
   let msgs ← runFrontendForMessagesM input
   msgs.findSomeM? fun s =>
     if s.startsWith "Try this:" || s.startsWith "Try these:" then
-      return (s.splitOn "[apply] ")[1]? |>.map (·.trim)
+      return (s.splitOn "[apply] ")[1]?
     else
       return none
 
-def getTryThisTactic? (input: String) : MetaM (Option Syntax) := do
+declare_syntax_cat tacticSeqCategory
+syntax tacticSeq : tacticSeqCategory
+
+def getTryThisTactic? (input: String) : MetaM (Option (TSyntax ``tacticSeq)) := do
   let tacticText? ← getTryThisTacticText? input
   tacticText?.bindM fun tacticText => do
-    let stx? := runParserCategory (← getEnv) `tactic tacticText
+    let stx? := runParserCategory (← getEnv) `tacticSeqCategory tacticText
     match stx? with
     | Except.ok stx =>
       logInfo m!"Parsed suggested tactic: {stx}"
-
-      return some stx
+      match stx with
+      | `(tacticSeqCategory| $ts:tacticSeq) =>
+        return some ts
+      | _ =>
+        logError m!"Unexpected syntax format for suggested tactic: {stx}"
+        return none
     | Except.error e =>
-      logError m!"Failed to parse suggested tactic: {e}"
+      logError m!"Failed to parse suggested tactic; {e}:\n{tacticText}"
       return none
 
 #eval runFrontendForMessagesM "example (n : Nat) : n ≤ n + 1 := by grind? "
@@ -95,5 +102,14 @@ example (x : Nat) : 0 < match x with
   | n+1 => x + n := by
   grind? "
 
+example (x : Nat) : 0 < match x with
+  | 0   => 1
+  | n+1 => x + n := by
+  aesop?
+
+#eval getTryThisTactic? "example (x : Nat) : 0 < match x with
+  | 0   => 1
+  | n+1 => x + n := by
+  aesop? "
 
 end LeanAide
