@@ -40,22 +40,24 @@ def getTryThisTacticText? (input: String) : MetaM (Option String) := do
 declare_syntax_cat tacticSeqCategory
 syntax tacticSeq : tacticSeqCategory
 
+def tacticsFromText? (tacticText: String) : MetaM (Option (TSyntax ``tacticSeq)) := do
+  let stx? := runParserCategory (← getEnv) `tacticSeqCategory tacticText
+  match stx? with
+  | Except.ok stx =>
+    logInfo m!"Parsed tactics: {stx}"
+    match stx with
+    | `(tacticSeqCategory| $ts:tacticSeq) =>
+      return some ts
+    | _ =>
+      logError m!"Unexpected syntax format for tactics: {stx}"
+      return none
+  | Except.error e =>
+    logError m!"Failed to parse tactics; {e}:\n{tacticText}"
+    return none
+
 def getTryThisTactic? (input: String) : MetaM (Option (TSyntax ``tacticSeq)) := do
   let tacticText? ← getTryThisTacticText? input
-  tacticText?.bindM fun tacticText => do
-    let stx? := runParserCategory (← getEnv) `tacticSeqCategory tacticText
-    match stx? with
-    | Except.ok stx =>
-      logInfo m!"Parsed suggested tactic: {stx}"
-      match stx with
-      | `(tacticSeqCategory| $ts:tacticSeq) =>
-        return some ts
-      | _ =>
-        logError m!"Unexpected syntax format for suggested tactic: {stx}"
-        return none
-    | Except.error e =>
-      logError m!"Failed to parse suggested tactic; {e}:\n{tacticText}"
-      return none
+  tacticText?.bindM tacticsFromText?
 
 #eval runFrontendForMessagesM "example (n : Nat) : n ≤ n + 1 := by grind? "
 
