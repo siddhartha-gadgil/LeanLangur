@@ -1,8 +1,4 @@
 import Mathlib
-import ProofWidgets
-
-open ProofWidgets Jsx in
-#html < iframe src="https://math.iisc.ac.in/~gadgil/TowerOfHanoi/index.html" width="1200" height="600"></iframe>
 
 namespace TowersOfHanoi
 
@@ -24,10 +20,8 @@ def Disk.isCompatibleWith (disk : Disk) (peg : Peg) :=
 
 infix:50 " ≺ " => Disk.isCompatibleWith
 
-attribute [grind] List.pairwise_cons
-
 @[grind .] theorem Peg.sorted_cons (d : Disk) (peg : Peg) (peg_sorted : peg.SortedLT) (compat : d ≺ peg := by grind) :
-    (d :: peg).SortedLT := by grind [List.SortedLT, Disk.isCompatibleWith]
+    (d :: peg).SortedLT := by grind only [List.pairwise_cons, = List.sortedLT_iff_pairwise, Disk.isCompatibleWith]
 
 @[grind]
 inductive BoardState.Transition : BoardState → BoardState → Prop where
@@ -62,7 +56,7 @@ inductive BoardState.Transition : BoardState → BoardState → Prop where
       Transition { leftPeg, middlePeg, rightPeg := disk :: rightPeg } { leftPeg, middlePeg := disk :: middlePeg, rightPeg }
 
 theorem BoardState.Transition_symm : Symmetric BoardState.Transition := by
-  grind [Symmetric]
+  grind only [Symmetric, BoardState.Transition]
 
 abbrev BoardState.TransitionGraph : SimpleGraph BoardState where
   Adj := BoardState.Transition
@@ -111,43 +105,55 @@ abbrev BoardState.swapLeftRight (bs : BoardState) : BoardState :=
   { leftPeg := bs.rightPeg, middlePeg := bs.middlePeg, rightPeg := bs.leftPeg }
 
 @[grind =] theorem BoardState.swapLeftMiddle_involutive (bs : BoardState) :
-    bs.swapLeftMiddle.swapLeftMiddle = bs := by sorry
+    bs.swapLeftMiddle.swapLeftMiddle = bs := by rfl
 
 @[grind =] theorem BoardState.swapMiddleRight_involutive (bs : BoardState) :
-    bs.swapMiddleRight.swapMiddleRight = bs := by sorry
+    bs.swapMiddleRight.swapMiddleRight = bs := by rfl
 
 @[grind =] theorem BoardState.swapLeftRight_involutive (bs : BoardState) :
-    bs.swapLeftRight.swapLeftRight = bs := by sorry
+    bs.swapLeftRight.swapLeftRight = bs := by rfl
 
 def BoardState.TransitionGraph.Adj_iff_Adj_swapLeftMiddle (bs bs' : BoardState) :
     BoardState.TransitionGraph.Adj bs bs' ↔ BoardState.TransitionGraph.Adj bs.swapLeftMiddle bs'.swapLeftMiddle := by
-  sorry
+  grind only [BoardState.Transition]
 
 def BoardState.TransitionGraph.Adj_iff_Adj_swapMiddleRight (bs bs' : BoardState) :
     BoardState.TransitionGraph.Adj bs bs' ↔ BoardState.TransitionGraph.Adj bs.swapMiddleRight bs'.swapMiddleRight := by
-  sorry
+  grind only [BoardState.Transition]
 
 def BoardState.TransitionGraph.Adj_iff_Adj_swapLeftRight (bs bs' : BoardState) :
     BoardState.TransitionGraph.Adj bs bs' ↔ BoardState.TransitionGraph.Adj bs.swapLeftRight bs'.swapLeftRight := by
-  sorry
+  grind only [BoardState.Transition]
+
+@[grind] def BoardState.TransitionGraph.Walk_swapLeftMiddle_of_Walk {bs bs' : BoardState} :
+    BoardState.TransitionGraph.Walk bs bs' → BoardState.TransitionGraph.Walk bs.swapLeftMiddle bs'.swapLeftMiddle :=
+  SimpleGraph.Walk.map { toFun := BoardState.swapLeftMiddle, map_rel' := by grind }
 
 @[grind] def BoardState.TransitionGraph.Walk_of_Walk_swapLeftMiddle {bs bs' : BoardState} :
     BoardState.TransitionGraph.Walk bs.swapLeftMiddle bs'.swapLeftMiddle → BoardState.TransitionGraph.Walk bs bs' :=
-  SimpleGraph.Walk.map { toFun := BoardState.swapLeftMiddle, map_rel' := by sorry }
+  SimpleGraph.Walk.map { toFun := BoardState.swapLeftMiddle, map_rel' := by grind }
 
 macro "swap_left_middle" : tactic =>
   `(tactic| (apply BoardState.TransitionGraph.Walk_of_Walk_swapLeftMiddle; dsimp only [BoardState.swapLeftMiddle]))
 
+@[grind] def BoardState.TransitionGraph.Walk_swapMiddleRight_of_Walk {bs bs' : BoardState} :
+    BoardState.TransitionGraph.Walk bs bs' → BoardState.TransitionGraph.Walk bs.swapMiddleRight bs'.swapMiddleRight :=
+  SimpleGraph.Walk.map { toFun := BoardState.swapMiddleRight, map_rel' := by grind }
+
 @[grind] def BoardState.TransitionGraph.Walk_of_Walk_swapMiddleRight {bs bs' : BoardState} :
     BoardState.TransitionGraph.Walk bs.swapMiddleRight bs'.swapMiddleRight → BoardState.TransitionGraph.Walk bs bs' :=
-  SimpleGraph.Walk.map { toFun := BoardState.swapMiddleRight, map_rel' := by sorry }
+  SimpleGraph.Walk.map { toFun := BoardState.swapMiddleRight, map_rel' := by grind }
 
 macro "swap_middle_right" : tactic =>
   `(tactic| (apply BoardState.TransitionGraph.Walk_of_Walk_swapMiddleRight; dsimp only [BoardState.swapMiddleRight]))
 
+@[grind] def BoardState.TransitionGraph.Walk_swapLeftRight_of_Walk {bs bs' : BoardState} :
+    BoardState.TransitionGraph.Walk bs bs' → BoardState.TransitionGraph.Walk bs.swapLeftRight bs'.swapLeftRight :=
+  SimpleGraph.Walk.map { toFun := BoardState.swapLeftRight, map_rel' := by grind }
+
 @[grind] def BoardState.TransitionGraph.Walk_of_Walk_swapLeftRight {bs bs' : BoardState} :
     BoardState.TransitionGraph.Walk bs.swapLeftRight bs'.swapLeftRight → BoardState.TransitionGraph.Walk bs bs' :=
-  SimpleGraph.Walk.map { toFun := BoardState.swapLeftRight, map_rel' := by sorry }
+  SimpleGraph.Walk.map { toFun := BoardState.swapLeftRight, map_rel' := by grind }
 
 macro "swap_left_right" : tactic =>
   `(tactic| (apply BoardState.TransitionGraph.Walk_of_Walk_swapLeftRight; dsimp only [BoardState.swapLeftRight]))
@@ -157,12 +163,12 @@ def Peg.isCompatibleWith (peg peg' : Peg) := ∀ d ∈ peg, d ≺ peg'
 @[grind .] theorem Peg.append_sorted_of_compat (peg peg' : Peg)
     (peg_sorted : peg.SortedLT) (peg'_sorted : peg'.SortedLT)
     (compat : peg.isCompatibleWith peg' := by grind) : (peg ++ peg').SortedLT := by
-  sorry
+  grind [Peg.isCompatibleWith, Disk.isCompatibleWith]
 
 @[grind →] theorem Peg.isCompatible_with_of_append_SortedLT (peg peg' : Peg)
     (append_sorted : (peg ++ peg').SortedLT := by grind) :
     peg.isCompatibleWith peg' := by
-  sorry
+  grind [Peg.isCompatibleWith, Disk.isCompatibleWith]
 
 @[grind]
 def BoardState.isCompatibleWith (bs bs' : BoardState) : Prop :=
@@ -186,15 +192,15 @@ infixr:70 " ⧏ " => BoardState.append
 
 @[grind .] theorem BoardState.isCompatibleWith_of_Adj {bs bs' : BoardState} (rel : TransitionGraph.Adj bs bs')
     (β : BoardState) : bs.isCompatibleWith β → bs'.isCompatibleWith β := by
-  sorry
+  grind only [Peg.isCompatibleWith, BoardState.isCompatibleWith, List.mem_cons]
 
 theorem BoardState.isCompatibleWith_of_Walk {bs bs' β : BoardState} (walk : TransitionGraph.Walk bs bs')
     : bs.isCompatibleWith β → bs'.isCompatibleWith β := by
-  induction walk <;> sorry
+  induction walk <;> grind
 
 @[grind →] theorem BoardState.TransitionGraph.Adj_append_of_Adj {bs bs' β : BoardState}
     (compat : bs.isCompatibleWith β := by grind) (rel : TransitionGraph.Adj bs bs') : TransitionGraph.Adj (bs ⧏ β) (bs' ⧏ β) := by
-  sorry
+  grind [Peg.isCompatibleWith, Disk.isCompatibleWith]
 
 def BoardState.TransitionGraph.Walk_append_of_Walk {bs bs' : BoardState} (walk : TransitionGraph.Walk bs bs') (β : BoardState)
     (compat : bs.isCompatibleWith β := by grind [Disk.isCompatibleWith, Peg.isCompatibleWith]) :
@@ -203,48 +209,19 @@ def BoardState.TransitionGraph.Walk_append_of_Walk {bs bs' : BoardState} (walk :
       TransitionGraph.Walk (bs ⧏ β) (bs' ⧏ β) :=
   match walk with
   | .nil => .nil
-  | .cons rel walk' =>.cons (by sorry) (TransitionGraph.Walk_append_of_Walk walk' β)
+  | .cons rel walk' =>.cons (by grind) (TransitionGraph.Walk_append_of_Walk walk' β)
 
-#check SimpleGraph.Walk.length_nil
-#check SimpleGraph.Walk.length_cons
 @[grind =]
 theorem BoardState.TransitionGraph.Walk_append_of_Walk_length {bs bs' : BoardState} (walk : TransitionGraph.Walk bs bs') (β : BoardState)
     (compat : bs.isCompatibleWith β := by grind) : (BoardState.TransitionGraph.Walk_append_of_Walk walk β).length = walk.length := by
-  induction walk <;> sorry
+  induction walk <;> grind [BoardState.TransitionGraph.Walk_append_of_Walk, SimpleGraph.Walk.length_nil, SimpleGraph.Walk.length_cons]
 
-/--
-Example:
-
-```
- BoardState.TransitionGraph.Walk
-  { leftPeg := List.range (n + 1), middlePeg := [], rightPeg := [] }
-  { leftPeg := [], middlePeg := [], rightPeg := List.range (n + 1) }
-
-split_as { leftPeg := .range n, middlePeg := [], rightPeg := [] } ⧏ { leftPeg := [n], middlePeg := [], rightPeg := [] }
-
-BoardState.TransitionGraph.Walk
-  ({ leftPeg := List.range n, middlePeg := [], rightPeg := [] } ⧏
-      { leftPeg := [n], middlePeg := [], rightPeg := [] })
-  { leftPeg := [], middlePeg := [], rightPeg := List.range (n + 1) }
-```
--/
 macro "split_as" bs:term : tactic =>
   `(tactic| refine SimpleGraph.Walk.copy (u := $bs) ?_ (by grind [List.range_succ]) rfl)
 
-/-- The opposite of `split_as` -/
 macro "merge_split" : tactic =>
   `(tactic| simp only [BoardState.append, List.append, List.append_nil, List.nil_append, ← List.range_succ, Nat.succ_eq_add_one])
 
-/-!
-Reduces proving
-```
-BoardState.TransitionGraph.Walk (bs ⧏ β) (bs' ⧏ β)
-```
-to
-```
-BoardState.TransitionGraph.Walk bs bs'
-```
--/
 macro "clear_append" : tactic =>
   `(tactic| refine BoardState.TransitionGraph.Walk_append_of_Walk ?_ _)
 

@@ -95,8 +95,8 @@ def Renderer.rpcMethod (props : PanelWidgetProps) : RequestM (RequestTask Html) 
         | some .X => "❌"
         | some .O => "🟢"
       let range : Lsp.Range := ⟨props.pos, props.pos⟩
-      let newPos := {props.pos with line := props.pos.line + 1 }
-      let editProps := MakeEditLinkProps.ofReplaceRange' docMeta range s!"play {row} {col}" (some ⟨newPos, newPos⟩)
+      -- let newPos := { line := props.pos.line + 1, character := 2 }
+      let editProps := MakeEditLinkProps.ofReplaceRange' docMeta range s!"\n  play {row} {col}" -- (some ⟨newPos, newPos⟩)
       .ofComponent MakeEditLink editProps #[.text display]
     renderBoard (docMeta : DocumentMeta) (board : BoardState) : Html :=
       let cellStyle := json% {width: "3em", height: "3em", textAlign: "center", border: "2px solid #333", fontSize: "1.5em", cursor: "pointer", transition: "background-color 0.2s"};
@@ -117,10 +117,13 @@ show_panel_widgets [Renderer]
 
 example : findWinningPositionFor .X .refl := by
   play 0 0
+  play 0 1
   play 1 2
   play 2 0
-  play 0 2
+  play 1 1
   play 1 0
+  play 2 2
   finish
+
 
 end TacTicToe
