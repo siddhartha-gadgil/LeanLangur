@@ -57,7 +57,7 @@ def primality  :=
     i := i + 1
     }
     from%
-    n := 57;
+    n := 59;
     return s!"Primality of {n}: {is_prime == 1}"
 
 /-!

@@ -26,6 +26,12 @@ def smaller (pivot : α) (l : List α) : List α :=
 def larger (pivot : α) (l : List α) : List α :=
   l.filter (fun x => pivot < x)
 
+partial def naiveQuickSort : List α → List α
+  | [] => []
+  | pivot :: l =>
+    (naiveQuickSort (smaller pivot l)) ++
+    pivot :: (naiveQuickSort (larger pivot l))
+
 def quickSort : List α → List α
   | [] => []
   | pivot :: l =>

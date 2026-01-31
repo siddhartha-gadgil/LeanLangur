@@ -105,6 +105,6 @@ macro_rules
 /-!
 ## Exercise
 
-Using `List.fliter` modify the `pyfor` syntax to support `if` conditions in for comprehensions.
+Using `List.filter` modify the `pyfor` syntax to support `if` conditions in for comprehensions.
 -/
 end PyForComprehension
