@@ -67,7 +67,7 @@ theorem BoardState.Transition_symm : Symmetric BoardState.Transition := by
 abbrev BoardState.TransitionGraph : SimpleGraph BoardState where
   Adj := BoardState.Transition
   symm := BoardState.Transition_symm
-  loopless := by grind [Irreflexive]
+  loopless := by grind [Std.Irrefl]
 
 #check BoardState.TransitionGraph.Walk
 

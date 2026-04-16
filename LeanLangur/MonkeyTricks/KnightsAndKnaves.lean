@@ -76,21 +76,21 @@ syntax "[" "PUZZLE" ident "]" sentences : command
 
 elab "knights_and_knaves" : tactic => do
   let mainGoal ← getMainGoal
-  Grind.withProtectedMCtx (abstractProof := false) mainGoal fun goal => do
+  Grind.withProtectedMCtx {} mainGoal fun goal => do
     let result ← Grind.main goal (← mkGrindParams {} (only := true) #[← `(grindParam| Islander), ← `(grindParam| Islander.says)] goal)
     let .some goal := result.failure? | return
     goal.mvarId.withContext do
       let eqcs := goal.getEqcs (sort := true)
-      let some knights := eqcs.find? (·.contains (.const ``Islander.knight [])) | throwError "No knights found"
-      let knights := knights.filter (· != .const ``Islander.knight [])
-      let some knaves := eqcs.find? (·.contains (.const ``Islander.knave [])) | throwError "No knaves found"
-      let knaves := knaves.filter (· != .const ``Islander.knave [])
+      let some knights := eqcs.find? (fun xs => List.contains xs (Expr.const ``Islander.knight [])) | throwError "No knights found"
+      let knights := knights.filter (· != Expr.const ``Islander.knight [])
+      let some knaves := eqcs.find? (fun xs => List.contains xs (Expr.const ``Islander.knave [])) | throwError "No knaves found"
+      let knaves := knaves.filter (· != Expr.const ``Islander.knave [])
       logInfo m!"Knights: {knights}"
       logInfo m!"Knaves: {knaves}"
       let knightSentences ←
-        knights.filterMapM (fun | .fvar person => do pure (some s!"{← person.getUserName} is a knight") | _ => pure none)
+        knights.filterMapM (fun | Expr.fvar person => do pure (some s!"{← person.getUserName} is a knight") | _ => pure none)
       let knaveSentences ←
-        knaves.filterMapM (fun | .fvar person => do pure (some s!"{← person.getUserName} is a knave") | _ => pure none)
+        knaves.filterMapM (fun | Expr.fvar person => do pure (some s!"{← person.getUserName} is a knave") | _ => pure none)
       let mainSentence : String := .join <| (knightSentences ++ knaveSentences).intersperse " and "
       let stx ← getRef
       let solveSpan? := stx.find? (·.getAtomVal = "SOLVE")
