@@ -18,6 +18,7 @@ namespace better_binary_search_tree
 A binary search tree structure.
 Each node contains a value and two children (left and right).
 A leaf contains a single value.
+empty is the empty tree.
 -/
 inductive Better_BinarySearchTree (α : Type) where
   | empty: Better_BinarySearchTree α
@@ -32,10 +33,10 @@ Membership relation for Binary Search Trees.
 -/
 @[grind ., simp]
 def Better_BinarySearchTree.mem {α : Type} : Better_BinarySearchTree α → α → Prop
-  | empty ,_y => False
+  | empty ,y => False
   | leaf x, y => x = y
   | node _ l r, y => Better_BinarySearchTree.mem l y ∨ Better_BinarySearchTree.mem r y
-def examplet : Better_BinarySearchTree Nat:= empty
+
 /--
 Instance for using the `∈` notation with `BinarySearchTree`.
 -/
@@ -71,6 +72,12 @@ def IsOrdered : Better_BinarySearchTree α → Prop
   | leaf _ => True
   | node v l r =>
     (∀ x ∈ l, x ≤ v) ∧ (∀ x ∈ r, v ≤ x) ∧ IsOrdered l ∧ IsOrdered r ∧ (v ∈ l ∨ v ∈ r)
+
+/- empty tree is always ordered -/
+@[grind .]
+theorem IsOrdered_empty :
+  IsOrdered (empty : Better_BinarySearchTree α) := by
+  simp [IsOrdered]
 
 /--
 A leaf is always ordered.
