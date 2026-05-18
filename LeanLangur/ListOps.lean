@@ -1,4 +1,15 @@
-import Mathlib
+import Mathlib -- imports definitions and theorems used below
+/-!
+## Prerequisite files
+
+* `SmallestNat.lean` - functions and proofs and macros and notation.
+
+## Main concepts introduced
+
+* implicit and explicit parameters.
+* monadic `do` notation for lists.
+-/
+
 /-!
 # List operations
 
@@ -7,47 +18,43 @@ We illustrate:
 * Explicit and Implicit parameters.
 * `do` notation for lists.
 * Why we need typeclasses.
-
-When you reach this, we expect that you have already worked through:
-
-* `SmallestNat.lean`
 -/
 
-namespace langur
+namespace langur -- starts a namespace to group the tutorial definitions
 
 /--
 Doubles a list by concatenating it with itself.
 This version takes the type `α` as an explicit parameter.
 -/
-def doubleList (α : Type) (l: List α) : List α :=
+def doubleList (α : Type) (l: List α) : List α := -- defines `doubleList`
   l ++ l
 
-#eval doubleList Nat [1, 3 ,5]
+#eval doubleList Nat [1, 3 ,5] -- runs this expression as a tutorial check
 
-#eval doubleList String ["hello", "world"]
+#eval doubleList String ["hello", "world"] -- runs this expression as a tutorial check
 
-#eval doubleList _ ["a", "b", "c"]
+#eval doubleList _ ["a", "b", "c"] -- runs this expression as a tutorial check
 
 /--
 error: don't know how to synthesize placeholder for argument `l`
 context:
 ⊢ List ℕ
 -/
-#guard_msgs in
-#eval doubleList Nat _
+#guard_msgs in -- checks that the following command produces the expected message
+#eval doubleList Nat _ -- runs this expression as a tutorial check
 
 /--
 Doubles a list by concatenating it with itself.
 This version uses an implicit type parameter `{α : Type}`.
 -/
-def dblList {α : Type} (l: List α) : List α :=
+def dblList {α : Type} (l: List α) : List α := -- defines `dblList`
   l ++ l
 
-#eval dblList [1, 3 ,5]
+#eval dblList [1, 3 ,5] -- runs this expression as a tutorial check
 
-#eval @dblList Int [1, 3 ,5]
+#eval @dblList Int [1, 3 ,5] -- runs this expression as a tutorial check
 
-#eval @dblList _ [1, 3 ,5]
+#eval @dblList _ [1, 3 ,5] -- runs this expression as a tutorial check
 
 /-!
 List of pairs using `do` notation. The `do` notation is a convenient way to compose operations that involve iterating over lists. It allows us to write code that looks more like a traditional imperative style, while still being purely functional. The same notation and behaviour holds for so-called **Monads** in general. We will encounter other monads later, in particular `State` monads and `Option`.
@@ -57,12 +64,12 @@ List of pairs using `do` notation. The `do` notation is a convenient way to comp
 Computes the Cartesian product of two lists using `do` notation.
 Returns a list of all possible pairs `(x, y)` where `x ∈ l₁` and `y ∈ l₂`.
 -/
-def pairs {α β : Type} (l₁: List α) (l₂: List β) : List (α × β) := do
-  let x ← l₁
-  let y ← l₂
-  return (x, y)
+def pairs {α β : Type} (l₁: List α) (l₂: List β) : List (α × β) := do -- defines `pairs`
+  let x ← l₁ -- binds an intermediate value for the following expression
+  let y ← l₂ -- binds an intermediate value for the following expression
+  return (x, y) -- returns this value from the monadic block
 
-#eval pairs [1, 2] ["a", "b"]
+#eval pairs [1, 2] ["a", "b"] -- runs this expression as a tutorial check
 
 /-!
 ## Exercise
@@ -76,15 +83,21 @@ More generally, we are given `ll: List (List α)` and we want `innerPairs` to re
 -/
 
 /-!
-List of sums using `do` notation. Requires the type `α` to have an instance of the `Add` typeclass to tell Lean how to add elements of type `α`. Continue to the file `Adder.lean` to see how typeclasses work. This example is just a preview of using typeclasses.
+List of sums using `do` notation. Requires the type `α` to have an instance of the `Add` typeclass to tell Lean how to add elements of type `α`. This example is just a preview of using typeclasses.
 -/
 
 /--
 Computes all possible sums of elements from two lists using `do` notation.
 -/
-def sums {α : Type}[Add α] (l₁: List α) (l₂: List α ) : List α := do
-  let x ← l₁
-  let y ← l₂
-  return x + y
+def sums {α : Type}[Add α] (l₁: List α) (l₂: List α ) : List α := do -- defines `sums`
+  let x ← l₁ -- binds an intermediate value for the following expression
+  let y ← l₂ -- binds an intermediate value for the following expression
+  return x + y -- returns this value from the monadic block
 
-end langur
+end langur -- closes the current namespace or section
+/-!
+## Next files
+
+* `BinTree.lean` - inductive types; recursive functions on trees; membership proofs.
+* `Adder.lean` - typeclasses; custom `Add` instances; typeclass inference.
+-/
