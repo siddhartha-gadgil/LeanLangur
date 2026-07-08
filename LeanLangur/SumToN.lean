@@ -32,3 +32,28 @@ theorem sumToN_eq (n: Nat) : 2 * sumToN n = n * (n + 1) := by -- states and begi
   induction n with -- proves the theorem by induction on the natural number `n`
   | zero => rfl -- proves the base case by reflexivity after computation
   | succ m ih => grind [sumToN] -- proves the successor case using the induction hypothesis and the definition of `sumToN`
+
+#check List.foldl
+
+def sumToN_foldl (n: Nat) : Nat := -- defines `sumToN_foldl` using a left fold over a list of natural numbers
+  List.foldl (fun acc x ↦ acc + x) 0 (List.range (n + 1)) -- folds the addition function over the list of numbers from `0` to `n`, starting with an accumulator of `0`
+
+def sumToNImp (n: Nat) := Id.run do -- defines `sumToNImp` using imperative-style programming with `do` notation
+  let mut acc := 0 -- initializes a mutable accumulator variable to `0`
+  for x in List.range (n + 1) do -- iterates over the list of numbers from `0` to `n`
+    acc := acc + x -- updates the accumulator by adding the current number
+  return acc -- returns the final value of the accumulator
+
+#eval sumToNImp 10 -- evaluates to 55
+
+def sumToNImp' (n: Nat) := Id.run do -- defines `sumToNImp` using imperative-style programming with `do` notation
+  let mut sum := 0 -- initializes a mutable accumulator variable to `0`
+  let mut i := 0
+  while i < n  do -- iterates over the list of numbers from `0` to `n`
+    i := i + 1
+    sum :=
+      sum +
+      i -- updates the accumulator by adding the current number
+  return sum -- returns the final value of the accumulator
+
+#eval sumToNImp' 10 -- evaluates to 55

@@ -46,12 +46,24 @@ Hint: Type class instance resolution failures can be inspected with the `set_opt
 #guard_msgs in -- checks that the following command produces the expected message
 #eval add "Hello" "world" -- runs this expression as a tutorial check
 
-instance : Add String where -- provides an instance for typeclass search
+instance addString : Add String where -- provides an instance for typeclass search
   add s t := s ++ " " ++ t
 
 #eval add "Hello" "world" -- runs this expression as a tutorial check
 
 #eval "Hello" + "world" -- runs this expression as a tutorial check
+
+instance : HAdd String Bool String where -- provides an instance for typeclass search
+  hAdd s b := if b then s ++ " true" else s ++ " false"
+
+#eval "Hello" + false -- runs this expression as a tutorial check
+
+instance (α : Type) : HAdd α (List α) (List α) where -- provides an instance for typeclass search
+  hAdd x xs := x :: xs
+
+#eval 1 + [2, 3]
+
+#eval HAdd.hAdd 1 [2, 3] -- runs this expression as a tutorial check
 
 instance {α β : Type}[Add α][Add β] : -- provides an instance for typeclass search
   Add (α × β) where
@@ -60,6 +72,9 @@ instance {α β : Type}[Add α][Add β] : -- provides an instance for typeclass 
 
 #check (1, 2, "Hello")
 #eval (1, 2, "Hello") +(3, 4, "world") -- runs this expression as a tutorial check
+
+set_option trace.Meta.synthInstance true in
+#synth Add (Nat × Nat × String)
 
 class AddThree (α : Type) where -- declares a new typeclass `AddThree`
   addThree : α → α → α → α -- declares a method `addThree` for the typeclass
@@ -70,7 +85,7 @@ def addThree {α : Type} [self: AddThree α] (x y z : α) : α := -- defines a h
 instance : AddThree String where -- provides an instance for typeclass search
   addThree s t u := s ++ " " ++ t ++ " " ++ u
 
-#eval addThree "Hello" "dear" "world" -- runs this expression as a tutorial check
+#eval addThree "Hello" "silly" "world" -- runs this expression as a tutorial check
 
 instance {α : Type} [Add α] : AddThree α where -- provides an instance for typeclass search
   addThree x y z := x + y + z
@@ -80,10 +95,20 @@ instance {α : Type} [Add α] : AddThree α where -- provides an instance for ty
 instance : AddThree Bool where -- provides an instance for typeclass search
   addThree x y z := x || y || z
 
+#eval addThree true false false
+
 #check Zero
 
-instance {α : Type} [Add α][Zero α] : Add α  where -- provides an instance for typeclass search
-  add := fun x y ↦ x + y + 0
+instance {α : Type} [AddThree α][Zero α] : Add α  where -- provides an instance for typeclass search
+  add := fun x y ↦ addThree x y 0
+
+instance : Zero Bool where -- provides an instance for typeclass search
+  zero := false
+
+set_option trace.Meta.synthInstance true in
+#eval add true false
+
+#eval (true, 1, "Hello") + (false, 2, "world") -- runs this expression as a tutorial check
 /-!
 ## Exercise: Pointwise addition
 

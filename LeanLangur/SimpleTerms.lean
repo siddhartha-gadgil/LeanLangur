@@ -110,6 +110,8 @@ The cube of a natural number, using a lambda expression with argument type speci
 def cube'' := fun (n : Nat) ↦ n * n * n
 #check cube'' -- Nat → Nat
 
+example :
+  (fun (x : Nat) ↦ x + 1) = fun (y : Nat) ↦ y + 1 := rfl
 
 /-!
 ## Curried functions

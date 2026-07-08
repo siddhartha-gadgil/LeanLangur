@@ -12,6 +12,8 @@ A logical statement like `1 ≤ 2` is a proposition and has type `Prop`.
 #check Prop -- Type
 #check Type -- Type 1
 
+#check Nat.le
+
 /-!
 Proofs build on other proofs. We will see eventually what are the most basic proofs. For now, we will see some proofs and see how they can be used and combined.
 -/
@@ -75,14 +77,76 @@ We apply modus-ponens with `P` being `0 ≤ 2` and `P → Q` being `Nat.succ_le_
   (@Nat.succ_le_succ 0 2) -- 1 ≤ 3
 
 
+theorem one_plus_one_eq_two : 1 + 1 = 2 := by
+  rfl
+
+/--
+error: Tactic `rfl` failed: The left-hand side
+  1 + 1
+is not definitionally equal to the right-hand side
+  3
+
+⊢ 1 + 1 = 3
+-/
+#guard_msgs in
+example : 1 + 1 = 3 := by
+  rfl
+
+#print one_plus_one_eq_two -- prints Lean's generated declaration for inspection
+
+#check Eq.refl -- ∀ {α : Sort u_1} {a : α}, a = a
+
+example : 1 ≤ 4 := by
+  -- apply Nat.le_refl
+  apply Nat.le.step
+  apply Nat.le.step
+  apply Nat.le.step
+  apply Nat.le.refl
+
+theorem one_le_four : 1 ≤ 4 := by
+  -- apply Nat.le_refl
+  repeat (first | apply Nat.le_refl | apply Nat.le.step)
+
+#print one_le_four -- prints Lean's generated declaration for inspection
+
+example : Nat → Nat :=
+  fun n ↦ n + 1
+
+macro "nat_le" : tactic =>
+  `(tactic| repeat (first | apply Nat.le_refl | apply Nat.le.step))
+
+theorem twelve_le_eighteen : 12 ≤ 18 :=
+  by
+  nat_le
+
+#print twelve_le_eighteen -- prints Lean's generated declaration for inspection
+
 /-!
 Some proofs at *term level*.
 -/
 theorem one_le_three : 1 ≤ 3 :=
   Nat.le.step (Nat.le.step (Nat.le.refl ))
+/-!
+A type family of propositions `ZeroLe` is defined, with a proof `pf_zero_le` that `0 ≤ n` for any natural number `n`.
+-/
+def ZeroLe (n: Nat) : Prop := 0 ≤ n
+
+/--
+A dependent function `pf_zero_le` that takes a natural number `n` and returns a proof that `0 ≤ n`.
+-/
+def pf_zero_le (n: Nat) : ZeroLe n := Nat.zero_le n
+
+#check Nat.le.step
+#check Nat.le_step
+
+example : 1 ≤ 3 :=
+  Nat.le.step (Nat.le.step (@Nat.le.refl _))
 
 theorem two_le_five : 2 ≤ 5 :=
   Nat.le.step (Nat.le.step (Nat.le.step (Nat.le.refl)))
+
+example : 2 ≤ 5 := by
+  exact Nat.le.step (Nat.le.step (Nat.le.step (Nat.le.refl)))
 
 #check @Nat.succ_le_succ 0 2 (Nat.zero_le 2) -- 1 ≤ 3
 
@@ -114,3 +178,7 @@ theorem proof_irrelevance {P: Prop} (h₁ h₂: P) :
 * `Type n` is `Sort n.succ`.
 * Strictly speaking, the `n` here is a universe level, not a natural number.
 -/
+
+example : 1 < 2 := sorry
+
+#check sorryAx

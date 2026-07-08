@@ -66,7 +66,8 @@ error: failed to synthesize instance of type class
 Hint: Type class instance resolution failures can be inspected with the `set_option trace.Meta.synthInstance true` command.
 -/
 #guard_msgs in -- checks that the following command produces the expected message
-def minBad {α : Type}[LE α] (a b : α) : α := if a ≤ b then a else b -- defines `minBad`
+def minBad {α : Type}[LE α] (a b : α) : α :=
+    if a ≤ b then a else b -- defines `minBad`
 
 /-!
 We can make it work by providing a decidable instance for the comparison by opening `Classical`. This allows us to use the law of excluded middle to decide the comparison. Concretely, the function `Classical.decidableInhabited` provides a decidable instance for any proposition, which allows us to use it to decide the comparison.
@@ -109,6 +110,7 @@ We can provide an instance of `Decidbale`, which is a *decision procedure*. For 
 -/
 #print Decidable -- prints Lean's generated declaration for inspection
 
+#print DecidableEq
 /--
 Instance to provide decidable equality for functions from `Bool` to `Nat`.
 Two such functions are equal if they agree on both `true` and `false`.
@@ -126,6 +128,12 @@ instance : DecidableEq (Bool → Nat) := by -- starts tactic mode to build the r
   else -- handles the alternative branch
     apply isFalse -- applies `isFalse` backwards, replacing the current goal by its premises
     grind -- uses `grind` to combine simplification, constructor facts, and hypotheses until the goal closes
+
+def firstFn : Bool → Nat := fun b ↦ if b then 1 else 2 -- defines `firstFn`
+
+def secondFn : Bool → Nat := fun b ↦ if b then 1 else 2 -- defines `secondFn`
+
+#eval decide (firstFn = secondFn) -- runs this expression as a tutorial check
 
 /--
 A more complex structure to illustrate derived decidable equality.
