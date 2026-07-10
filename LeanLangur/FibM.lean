@@ -36,6 +36,25 @@ def slowFib : Nat → Nat -- defines `slowFib`
 
 open Std -- opens names so constructors or helpers can be written unqualified
 
+/-!
+Essentially `StateM σ` is the monad `StateM σ α := σ → (α × σ)`, where `σ` is the type of the state and `α` is the type of the result. In our case, we use a `HashMap Nat Nat` to store previously computed Fibonacci numbers. The `StateM` monad allows us to thread this state through our computations, enabling memoization.
+-/
+
+namespace MyStateM -- starts a namespace to group the tutorial definitions
+
+variable {σ : Type} -- declares variables for the types of state and result
+
+def pure {α : Type} (a : α) :
+  StateM σ α := fun s => (a, s) -- defines `pure` to lift a value into the state monad
+
+def map {α β : Type} (f : α → β) (ma : StateM σ α) :
+  StateM σ β := fun s => let (a, s') := ma s; (f a, s') -- defines `map` to apply a function to the result of a stateful computation
+
+def flatMap {α β : Type} (f : α → StateM σ β) (ma : StateM σ α) :
+  StateM σ β := fun s => let (a, s') := ma s; f a s' -- defines `flatMap` to chain stateful computations
+
+end MyStateM -- closes the current namespace or section
+
 abbrev FibM := StateM (HashMap Nat  Nat) -- introduces `FibM` as a reducible abbreviation
 
 def fibM (n : Nat) : FibM Nat := do -- defines `fibM`
@@ -56,7 +75,7 @@ def fibM (n : Nat) : FibM Nat := do -- defines `fibM`
       let result := fn1 + fn2 -- binds an intermediate value for the following expression
       modify (fun m => m.insert (n + 2) result) -- maps this case or syntax pattern to its result
       return result -- returns this value from the monadic block
-#eval fibM 1001 |>.run' ∅ -- This will be fast due to memoization
+#eval fibM 10010 |>.run' ∅ -- This will be fast due to memoization
 
 #check fibM -- asks Lean to display the inferred type
 

@@ -60,6 +60,8 @@ def dblList {α : Type} (l: List α) : List α := -- defines `dblList`
 List of pairs using `do` notation. The `do` notation is a convenient way to compose operations that involve iterating over lists. It allows us to write code that looks more like a traditional imperative style, while still being purely functional. The same notation and behaviour holds for so-called **Monads** in general. We will encounter other monads later, in particular `State` monads and `Option`.
 -/
 
+#check Monad
+
 /--
 Computes the Cartesian product of two lists using `do` notation.
 Returns a list of all possible pairs `(x, y)` where `x ∈ l₁` and `y ∈ l₂`.
@@ -69,7 +71,90 @@ def pairs {α β : Type} (l₁: List α) (l₂: List β) : List (α × β) := do
   let y ← l₂ -- binds an intermediate value for the following expression
   return (x, y) -- returns this value from the monadic block
 
+def pairs' {α β : Type} (l₁: List α) (l₂: List β) : List (α × β) := -- defines `pairs'`
+  l₁.flatMap (fun x ↦ l₂.map (fun y ↦ (x, y))) -- uses `flatMap` and `map` to compute the Cartesian product of two lists
+
 #eval pairs [1, 2] ["a", "b"] -- runs this expression as a tutorial check
+
+/-!
+## List as a monad
+
+Firstly, it is a function on types.
+-/
+
+#check List -- `List` is a function from Type to Type, i.e., `a ↦ List a`.
+
+namespace ListMonad
+/-!
+Next, a singleton list is a function from `α` to `List α`.
+-/
+def pure {α : Type} (x : α) : List α := [x] -- defines `pure`
+
+#check List.map -- `List.map` is a function from `(α → β) → List α → List β`
+
+#eval List.map  (fun (s: String) ↦ s.length) ["hello", "world", "lean"] --this expression as a tutorial check
+
+#eval ["hello", "world", "lean"].map (fun s ↦ s.length) -- this expression as a tutorial check
+
+#check List.flatMap
+
+#eval List.range 5
+
+#eval [1, 3, 5].map List.range
+
+#eval [1, 3, 5].flatMap List.range
+
+#eval List.flatMap  (fun (s: String) ↦ pure s.length) ["hello", "world", "lean"] --this expression as a tutorial check
+
+end ListMonad
+
+/-!
+## Option as monad
+-/
+#print Option
+#check Option.map
+
+#eval some 3 |>.map (fun x ↦ x + 1) -- runs this expression as a tutorial check
+
+#eval none |>.map (fun x ↦ x + 1) -- runs this expression as a tutorial check
+
+def half? : Nat → Option Nat
+| 0 => some 0
+| 1 => none
+| n + 2 => half? n |>.map (fun x ↦ x + 1)
+
+#eval half? 10
+
+#eval half? 11 -- runs this expression as a tutorial check
+
+def threeHalfs? (n: Nat) : Option Nat :=
+  (half? n).map (fun x ↦ x * 3) -- defines `threeHalfs?`
+
+#eval threeHalfs? 10 -- runs this expression as a tutorial check
+
+#eval threeHalfs? 11 -- runs this expression as a tutorial check
+
+def threeHalfs?₁ (n: Nat) : Option Nat := do -- defines `threeHalfs?₁`
+  let x ← half? n -- binds an intermediate value for the following expression
+  return x * 3 -- returns this value from the monadic block
+
+def quarter? (n: Nat) : Option Nat := do -- defines `quarter?`
+  let x ← half? n -- binds an intermediate value for the following expression
+  let y ← half? x -- returns this value from the monadic block
+  return y -- returns this value from the monadic block
+
+def myFlatMap {α β : Type} (f : α → Option β) (o : Option α) : Option β := match o with -- splits computation into cases by pattern matching
+  | none => none -- matches a missing optional value and returns `none`
+  | some x => f x -- matches a present optional value and returns `f x`
+
+
+#eval quarter? 16 -- runs this expression as a tutorial check
+
+#eval quarter? 15 -- runs this expression as a tutorial check
+
+#eval quarter? 14 -- runs this expression as a tutorial check
+
+end langur -- closes the current namespace or section
 
 /-!
 ## Exercise
