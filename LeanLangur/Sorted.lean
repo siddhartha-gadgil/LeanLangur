@@ -55,7 +55,7 @@ If a list is sorted, its head is less than or equal to all other elements in the
 theorem head_le_of_sorted  (a: α) (l : List α) : Sorted (a :: l) → ∀ x ∈ l, a ≤ x := by -- starts tactic mode; the following tactics prove the proposition just stated
   intro h -- moves leading forall variables or implication hypotheses into the local context
   match h with -- splits computation into cases by pattern matching
-  | Sorted.singleton .. => simp -- matches a sorted singleton list proof and simplifies this proof case
+  | Sorted.singleton .(a) => simp -- matches a sorted singleton list proof and simplifies this proof case
   | Sorted.step .(a) y l hxy tail_sorted => -- matches a sorted list built from a head and sorted tail and proves this case using the following proof steps
     have ih := head_le_of_sorted y l tail_sorted -- records an intermediate fact for the proof
     grind -- uses `grind` to combine simplification, constructor facts, and hypotheses until the goal closes

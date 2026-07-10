@@ -24,6 +24,10 @@ namespace langur -- starts a namespace to group the tutorial definitions
 
 variable {α : Type}
 
+def four : Nat := 4 -- defines `four`
+#check four
+example : four = 4 := by rfl -- states and proves theorem `example`
+
 /--
 A simple binary tree where each leaf carries a value of type `α`,
 and nodes represent branches with two subtrees.
@@ -32,6 +36,55 @@ inductive BinTree (α : Type) where -- declares the inductive type or propositio
   | leaf : α → BinTree α -- declares another constructor or syntax alternative
   | node : BinTree α → BinTree α → BinTree α -- declares another constructor or syntax alternative
 deriving Repr, Inhabited -- asks Lean to generate standard instances automatically
+
+#check BinTree
+#check BinTree.leaf
+#check BinTree.node
+
+#check BinTree.rec -- function to define recursive functions on `BinTree` and prove properties by induction on `BinTree`.
+
+#check BinTree.rec (α := String) (motive := fun _ => Nat)
+
+#print Nat
+
+#check Nat.rec
+#check Nat.rec (motive := fun _ => Bool)
+
+def isEven : Nat → Bool -- defines `isEven`
+  | 0 => true -- matches `0` and returns `true`
+  | n + 1 => ¬(isEven n) -- matches `n + 1` and returns the negation of `isEven n`
+
+#eval isEven 0 -- evaluates to `true`
+#eval isEven 1 -- evaluates to `false`
+
+def isEven' : Nat → Bool :=
+  Nat.rec (motive := fun _ => Bool) true (fun _n fn => ¬fn) -- defines `isEven'` using `Nat.rec`
+
+theorem isEven'_zero : isEven' 0 = true := by rfl
+theorem isEven'_succ : ∀ n, isEven' (n + 1) = ¬(isEven' n) :=
+  by simp [isEven'] -- states and proves theorem `isEven'_succ` by simplification
+
+#eval isEven' 0 -- evaluates to `true`
+#eval isEven' 1 -- evaluates to `false`
+
+theorem n_or_succ_even (n : Nat) :
+  isEven n || isEven (n + 1) := by
+  induction n with
+  | zero => rfl
+  | succ m ih =>
+    simp at ih
+    simp
+    cases ih with
+    | inl h =>
+      apply Or.inr
+      grind +locals
+    | inr h =>
+      apply Or.inl
+      assumption
+
+theorem n_or_succ_even' : ∀ (n : Nat),
+  isEven n || isEven (n + 1) :=
+    Nat.rec (motive := fun n => isEven n || isEven (n + 1)) (by rfl) (fun m ih => by grind +locals)
 
 open BinTree -- opens names so constructors or helpers can be written unqualified
 
