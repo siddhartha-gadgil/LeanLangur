@@ -98,3 +98,17 @@ end langur -- closes the current namespace or section
 * Or go directly to `Sorted.lean`, then `QuickSort.lean` - quicksort implementation and correctness proof; an extended example of programs with proofs.
 
 -/
+
+def fibPair : Nat → Nat × Nat -- defines `fibPair n = (fib n, fib (n + 1))`
+  | 0 => (1, 1) -- matches zero and returns `(1, 1)`
+  | n + 1 => let (fn, fn1) := fibPair n; (fn + fn1, fn) -- matches a successor natural number and returns `(fn + fn1, fn)`
+
+def fib (n: Nat) : Nat := (fibPair n).1 -- defines `fib` to return the first component of the pair returned by `fibPair`
+
+#eval fib 234
+
+example : fib 234 = 9366947731425726508977331996039353971111632790877 := by
+  cbv
+
+example : fib 112 = fib 111 + fib 110 := by
+  cbv
