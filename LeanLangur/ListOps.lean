@@ -154,7 +154,6 @@ def myFlatMap {α β : Type} (f : α → Option β) (o : Option α) : Option β 
 
 #eval quarter? 14 -- runs this expression as a tutorial check
 
-end langur -- closes the current namespace or section
 
 /-!
 ## Exercise
