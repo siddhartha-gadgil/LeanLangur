@@ -2,33 +2,6 @@ import Mathlib
 
 open Nat
 
-variable (comb : Nat → Nat → Nat)
-
-class CombDef : Prop where
-    comb_eqn (n m : Nat) : n ! * comb n m = m ! * (n -m)!
-
-variable [inst_CombDef : CombDef comb]
-
-theorem comb_eqn (n m : Nat) :
-    n ! * comb n m = m ! * (n -m)! := by
-    apply inst_CombDef.comb_eqn
-
-def combIO (n m: IO Nat): IO Nat := do
-    return (← n) ! / ((← m) ! * ((← n)- (← m))!)
-
-def twoPowN (n: Nat) : Nat :=
-    List.range (n + 1) |>.foldl
-        (fun k acc ↦ acc + comb n k) 0
-
-#check twoPowN
-
--- Issue: extract `ℕ → ℕ → ℕ` from function that is IO valued in `IO`.
-def twoPowNIO (n: IO Nat) : IO Nat :=
-    do
-    let comb : Nat → Nat → Nat ← do
-        pure <| sorry
-    return twoPowN comb (← n)
-
 inductive LeanMode
     | run | prove
 
@@ -67,6 +40,14 @@ def doubleM  [inst: DoubleM mode] (n: Nat) : OutM Nat :=
 instance : DoubleM LeanMode.run where
     doubleM n := return n + n
 
+instance [instAbs : DoubleM .prove] : DoubleM mode := match mode with
+    | LeanMode.run => inferInstanceAs (DoubleM LeanMode.run)
+    | LeanMode.prove => instAbs
+
+def timesFourM [DoubleM .prove] (n: Nat) : OutM Nat := do
+    let x ← doubleM  n
+    doubleM (mode:= mode) x
+
 #eval doubleM (mode := .run) 3
 
 #check doubleM (mode := .run) 3
@@ -77,9 +58,10 @@ namespace abstraction
 
 variable [inst: DoubleM .prove]
 
-scoped instance : DoubleM mode := match mode with
-    | LeanMode.run => inferInstanceAs (DoubleM LeanMode.run)
-    | LeanMode.prove => inferInstanceAs (DoubleM LeanMode.prove)
+-- We cannot allow a branch to be abstract.
+/-- error: Cannot evaluate, contains free variable `inst` -/
+#guard_msgs in
+#eval timesFourM (mode := .run) 3
 
 /--
 error: Tactic `rfl` failed: The left-hand side
@@ -87,8 +69,6 @@ error: Tactic `rfl` failed: The left-hand side
 is not definitionally equal to the right-hand side
   6
 
-comb : ℕ → ℕ → ℕ
-inst_CombDef : CombDef comb
 mode : LeanMode
 inst : DoubleM LeanMode.prove
 ⊢ doubleM 3 = 6
@@ -97,9 +77,6 @@ inst : DoubleM LeanMode.prove
 example : doubleM (mode := .prove) 3 = 6 := by
     rfl
 
-def timesFourM (n: Nat) : OutM Nat := do
-    let x ← doubleM  n
-    doubleM (mode:= mode) x
 
 end abstraction
 
@@ -109,18 +86,12 @@ namespace reference_implementation
 scoped instance : DoubleM LeanMode.prove where
     doubleM n := n + n
 
-scoped instance : DoubleM mode := match mode with
-    | LeanMode.run => inferInstanceAs (DoubleM LeanMode.run)
-    | LeanMode.prove => inferInstanceAs (DoubleM LeanMode.prove)
-
 example : doubleM (mode := .prove) 3 = 6 := by
     rfl
 
-#eval abstraction.timesFourM (mode := .run) 3
+#eval timesFourM (mode := .run) 3
 
-def timesFourM (n: Nat) : OutM Nat := do
-    let x ← doubleM  n
-    doubleM (mode:= mode) x
+
 
 end reference_implementation
 
@@ -128,10 +99,6 @@ namespace noncomputable_implementation
 
 noncomputable scoped instance : DoubleM LeanMode.prove where
     doubleM n := n + n
-
-scoped instance : DoubleM mode := match mode with
-    | LeanMode.run => inferInstanceAs (DoubleM LeanMode.run)
-    | LeanMode.prove => inferInstanceAs (DoubleM LeanMode.prove)
 
 example : doubleM (mode := .prove) 3 = 6 := by
     rfl
@@ -141,10 +108,21 @@ example : doubleM (mode := .prove) 3 = 6 := by
 error: failed to compile definition, consider marking it as 'noncomputable' because it depends on 'instDoubleMProve', which is 'noncomputable'
 -/
 #guard_msgs in
-#eval abstraction.timesFourM (mode := .run) 3
-
-def timesFourM (n: Nat) : OutM Nat := do
-    let x ← doubleM  n
-    doubleM (mode:= mode) x
+#eval timesFourM (mode := .run) 3
 
 end noncomputable_implementation
+
+namespace sorry_implementation
+
+scoped instance : DoubleM LeanMode.prove where
+    doubleM := sorry
+
+
+-- We cannot also use sorry in the proof branch to avoid implementation.
+/--
+error: cannot evaluate code because 'sorry_implementation.instDoubleMProve' uses 'sorry' and/or contains errors
+-/
+#guard_msgs in
+#eval! timesFourM (mode := .run) 3
+
+end sorry_implementation
