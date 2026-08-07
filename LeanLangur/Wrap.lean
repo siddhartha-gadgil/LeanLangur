@@ -73,24 +73,6 @@ instance : DoubleM LeanMode.run where
 
 example : IO Nat := doubleM (mode := .run) 3
 
-namespace reference_implementation
-
-scoped instance : DoubleM LeanMode.prove where
-    doubleM n := n + n
-
-scoped instance : DoubleM mode := match mode with
-    | LeanMode.run => inferInstanceAs (DoubleM LeanMode.run)
-    | LeanMode.prove => inferInstanceAs (DoubleM LeanMode.prove)
-
-example : doubleM (mode := .prove) 3 = 6 := by
-    rfl
-
-def timesFourM (n: Nat) : OutM Nat := do
-    let x ← doubleM  n
-    doubleM (mode:= mode) x
-
-end reference_implementation
-
 namespace abstraction
 
 variable [inst: DoubleM .prove]
@@ -120,3 +102,49 @@ def timesFourM (n: Nat) : OutM Nat := do
     doubleM (mode:= mode) x
 
 end abstraction
+
+
+namespace reference_implementation
+
+scoped instance : DoubleM LeanMode.prove where
+    doubleM n := n + n
+
+scoped instance : DoubleM mode := match mode with
+    | LeanMode.run => inferInstanceAs (DoubleM LeanMode.run)
+    | LeanMode.prove => inferInstanceAs (DoubleM LeanMode.prove)
+
+example : doubleM (mode := .prove) 3 = 6 := by
+    rfl
+
+#eval abstraction.timesFourM (mode := .run) 3
+
+def timesFourM (n: Nat) : OutM Nat := do
+    let x ← doubleM  n
+    doubleM (mode:= mode) x
+
+end reference_implementation
+
+namespace noncomputable_implementation
+
+noncomputable scoped instance : DoubleM LeanMode.prove where
+    doubleM n := n + n
+
+scoped instance : DoubleM mode := match mode with
+    | LeanMode.run => inferInstanceAs (DoubleM LeanMode.run)
+    | LeanMode.prove => inferInstanceAs (DoubleM LeanMode.prove)
+
+example : doubleM (mode := .prove) 3 = 6 := by
+    rfl
+
+-- This is a problem. One branch being noncomputable makes the whole function noncomputable, even though the other branch is computable.
+/--
+error: failed to compile definition, consider marking it as 'noncomputable' because it depends on 'instDoubleMProve', which is 'noncomputable'
+-/
+#guard_msgs in
+#eval abstraction.timesFourM (mode := .run) 3
+
+def timesFourM (n: Nat) : OutM Nat := do
+    let x ← doubleM  n
+    doubleM (mode:= mode) x
+
+end noncomputable_implementation
