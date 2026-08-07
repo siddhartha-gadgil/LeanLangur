@@ -111,4 +111,4 @@ example : fib 234 = 9366947731425726508977331996039353971111632790877 := by
   cbv
 
 example : fib 112 = fib 111 + fib 110 := by
-  cbv
+  grind +locals
