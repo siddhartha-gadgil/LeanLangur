@@ -89,55 +89,6 @@ variable (n: Nat)
 #guard_msgs in
 def n: Nat := 1
 
--- From Gemini
-open Meta
-def transformTermsDemo : MetaM Unit := do
-  -- Create two arbitrary local constants for illustration
-  let sourceTerm := mkNatLit 42
-  let targetTerm := mkStrLit "forty-two" -- Changing type from Nat to String
-
-  -- Target expression: (42, 42)
-  let pairExpr ← mkAppM ``Prod.mk #[sourceTerm, sourceTerm]
-  IO.println s!"Original Pair: {← ppExpr pairExpr}"
-
-  -- Transform the expression
-  let resultExpr ← Meta.transform pairExpr (post := fun subExpr => do
-    if subExpr == sourceTerm then
-      -- If we match our named term, replace it with the new one
-      return .done targetTerm
-    else
-      -- Otherwise, keep traversing recursively
-      return .continue
-  )
-
-  IO.println s!"Transformed Pair: {← ppExpr resultExpr}"
-
-#eval transformTermsDemo
-
-def transformTermsDemo' : MetaM Unit := do
-  -- Create two arbitrary local constants for illustration
-  let sourceTerm := mkNatLit 42
-  let targetTerm := mkStrLit "forty-two" -- Changing type from Nat to String
-
-  -- Target expression: (42, 42)
-  let pairExpr ← mkAppM ``Prod.mk #[sourceTerm, sourceTerm]
-  IO.println s!"Original Pair: {← ppExpr pairExpr}"
-
-  -- Transform the expression
-  let resultExpr ← Meta.transform pairExpr (pre := fun subExpr => do
-    if subExpr == sourceTerm then
-        -- Found an exact match; swap it and stop traversing this branch
-        return .done targetTerm
-    else
-        -- Not a match; move on to check the children
-        return .continue
-    )
-
-
-  IO.println s!"Transformed Pair: {← ppExpr resultExpr}"
-
-#eval transformTermsDemo'
-
 def transformTermsIOtoId (name newName: Name) : MetaM Syntax.Command := do
   -- Create two arbitrary local constants for illustration
   let sourceTerm := mkConst ``IO
@@ -189,3 +140,56 @@ def elabTransformIOtoId : CommandElab :=
 abstract eg as egAbs
 
 #check egAbs
+
+example (n: Nat) : egAbs (egAbs n) = n + 2 := by
+    rfl
+
+
+-- From Gemini
+open Meta
+def transformTermsDemo : MetaM Unit := do
+  -- Create two arbitrary local constants for illustration
+  let sourceTerm := mkNatLit 42
+  let targetTerm := mkStrLit "forty-two" -- Changing type from Nat to String
+
+  -- Target expression: (42, 42)
+  let pairExpr ← mkAppM ``Prod.mk #[sourceTerm, sourceTerm]
+  IO.println s!"Original Pair: {← ppExpr pairExpr}"
+
+  -- Transform the expression
+  let resultExpr ← Meta.transform pairExpr (post := fun subExpr => do
+    if subExpr == sourceTerm then
+      -- If we match our named term, replace it with the new one
+      return .done targetTerm
+    else
+      -- Otherwise, keep traversing recursively
+      return .continue
+  )
+
+  IO.println s!"Transformed Pair: {← ppExpr resultExpr}"
+
+#eval transformTermsDemo
+
+def transformTermsDemo' : MetaM Unit := do
+  -- Create two arbitrary local constants for illustration
+  let sourceTerm := mkNatLit 42
+  let targetTerm := mkStrLit "forty-two" -- Changing type from Nat to String
+
+  -- Target expression: (42, 42)
+  let pairExpr ← mkAppM ``Prod.mk #[sourceTerm, sourceTerm]
+  IO.println s!"Original Pair: {← ppExpr pairExpr}"
+
+  -- Transform the expression
+  let resultExpr ← Meta.transform pairExpr (pre := fun subExpr => do
+    if subExpr == sourceTerm then
+        -- Found an exact match; swap it and stop traversing this branch
+        return .done targetTerm
+    else
+        -- Not a match; move on to check the children
+        return .continue
+    )
+
+
+  IO.println s!"Transformed Pair: {← ppExpr resultExpr}"
+
+#eval transformTermsDemo'
